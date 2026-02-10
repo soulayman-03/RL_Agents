@@ -1,7 +1,5 @@
 Seeds to test for generalization
 
-Oui, ce schéma mental est parfaitement respecté et c'est précisément ce qui explique vos derniers résultats de succès à 100%.
-
 Voici comment votre code force l'agent à apprendre des règles logiques plutôt que de la mémorisation brute :
 
 1. Ses "Yeux" voient des Caractéristiques (Features)
