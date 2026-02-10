@@ -48,6 +48,13 @@ def train():
     print(f"Starting Multi-Agent Training with {NUM_AGENTS} agents...")
 
     for ep in range(EPISODES):
+        # Structured seed rotation every 100 episodes for generalization
+        if ep % 100 == 0:
+            current_seed = TRAIN_SEED + (ep // 100)
+            env.resource_manager.reset_devices_with_seed(NUM_DEVICES, current_seed)
+            if ep > 0:
+                print(f"\n--- Rotated IoT Network Seed to {current_seed} for Generalized Learning ---")
+        
         obs, _ = env.reset()
         total_ep_reward = 0
         agent_ep_rewards = {i: 0 for i in range(NUM_AGENTS)}

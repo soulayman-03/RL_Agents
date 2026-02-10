@@ -88,75 +88,75 @@ def evaluate():
     eval_rewards = {i: [] for i in range(NUM_AGENTS)}
     eval_successes = {i: [] for i in range(NUM_AGENTS)}
     
-    # To store for execution flow plot (from last episode)
+    # Seeds to test for generalization
+    EVAL_SEEDS = [42, 55, 66, 77, 88]
+    
+    # To store for execution flow plot (from last seed, last episode)
     last_episode_traces = {i: [] for i in range(NUM_AGENTS)}
 
-    for ep in range(NUM_EVAL_EPISODES):
-        obs, _ = env.reset()
-        done = {i: False for i in range(NUM_AGENTS)}
-        # To track agent mappings for this episode
-        agent_ep_mappings = {i: [] for i in range(NUM_AGENTS)}
-        ep_rewards = {i: 0 for i in range(NUM_AGENTS)}
-        ep_success = {i: False for i in range(NUM_AGENTS)}
+    for seed_idx, current_seed in enumerate(EVAL_SEEDS):
+        print(f"\n--- Testing Generalization - Seed: {current_seed} ---")
+        env.resource_manager.reset_devices_with_seed(NUM_DEVICES, current_seed)
         
-        while not all(done.values()):
-            valid_actions = env.get_valid_actions()
-            actions = manager.get_actions(obs, valid_actions)
+        for ep in range(NUM_EVAL_EPISODES):
+            obs, _ = env.reset()
+            done = {i: False for i in range(NUM_AGENTS)}
+            # To track agent mappings for this episode
+            agent_ep_mappings = {i: [] for i in range(NUM_AGENTS)}
+            ep_rewards = {i: 0 for i in range(NUM_AGENTS)}
+            ep_success = {i: False for i in range(NUM_AGENTS)}
             
-            # Record choices
-            for aid, device_id in actions.items():
-                if not done[aid]:
-                    agent_ep_mappings[aid].append(device_id)
-
-            # Record trace for plotting
-            if ep == NUM_EVAL_EPISODES - 1:
-                for aid, dev_id in actions.items():
+            while not all(done.values()):
+                valid_actions = env.get_valid_actions()
+                actions = manager.get_actions(obs, valid_actions)
+                
+                # Record choices
+                for aid, device_id in actions.items():
                     if not done[aid]:
-                        last_episode_traces[aid].append({
-                            'layer': env.agent_progress[aid],
-                            'device': dev_id,
-                            'model': env.model_types[aid],
-                            'lat': 0 # Updated after step
-                        })
+                        agent_ep_mappings[aid].append(device_id)
 
-            next_obs, rewards, next_done, truncated, infos = env.step(actions)
-            
-            # Update latencies in trace
-            if ep == NUM_EVAL_EPISODES - 1:
-                for aid in range(NUM_AGENTS):
-                    if aid in rewards and rewards[aid] > -500:
-                        last_episode_traces[aid][-1]['lat'] = -rewards[aid]
+                # Record trace for plotting (only for the very last episode of the last seed)
+                if seed_idx == len(EVAL_SEEDS) - 1 and ep == NUM_EVAL_EPISODES - 1:
+                    for aid, dev_id in actions.items():
+                        if not done[aid]:
+                            last_episode_traces[aid].append({
+                                'layer': env.agent_progress[aid],
+                                'device': dev_id,
+                                'model': env.model_types[aid],
+                                'lat': 0 # Updated after step
+                            })
 
-            obs = next_obs
-            done = next_done
-            
+                next_obs, rewards, next_done, truncated, infos = env.step(actions)
+                
+                # Update latencies in trace
+                if seed_idx == len(EVAL_SEEDS) - 1 and ep == NUM_EVAL_EPISODES - 1:
+                    for aid in range(NUM_AGENTS):
+                        if aid in rewards and rewards[aid] > -500:
+                            last_episode_traces[aid][-1]['lat'] = -rewards[aid]
+
+                obs = next_obs
+                done = next_done
+                
+                for i in range(NUM_AGENTS):
+                    if i in rewards:
+                        ep_rewards[i] += rewards[i]
+                    if i in infos and infos[i].get("success") and env.agent_progress[i] == len(env.tasks[i]):
+                         ep_success[i] = True
+
             for i in range(NUM_AGENTS):
-                if i in rewards:
-                    ep_rewards[i] += rewards[i]
-                if i in infos and infos[i].get("success") and env.agent_progress[i] == len(env.tasks[i]):
-                     ep_success[i] = True
-
-        for i in range(NUM_AGENTS):
-            eval_rewards[i].append(ep_rewards[i])
-            eval_successes[i].append(1 if ep_success[i] else 0)
-        
-        # Detailed Episode Logging
-        avg_ep_reward = sum(ep_rewards.values())/NUM_AGENTS
-        print(f"Episode {ep+1}/{NUM_EVAL_EPISODES} | Avg Reward: {avg_ep_reward:.2f}")
-        for i in range(NUM_AGENTS):
-            mapping_str = " -> ".join([str(d) for d in agent_ep_mappings[i]])
-            success_tag = "[SUCCESS]" if ep_success[i] else "[FAILED]"
-            task_layers = env.tasks[i]
-            print(f"  Agent {i} ({env.model_types[i]}): {mapping_str} {success_tag} | Reward: {ep_rewards[i]:.2f}")
-            layer_details = [f"L{l.layer_id}({l.computation_demand}c,{l.memory_demand}m)" for l in task_layers]
-            print(f"    Layer sizes: {' | '.join(layer_details)}")
-        print("-" * 30)
+                eval_rewards[i].append(ep_rewards[i])
+                eval_successes[i].append(1 if ep_success[i] else 0)
+            
+            # Print only for the first few episodes per seed to avoid clutter
+            if ep < 2:
+                avg_ep_reward = sum(ep_rewards.values())/NUM_AGENTS
+                print(f"Seed {current_seed} | Ep {ep+1} | Avg Reward: {avg_ep_reward:.2f}")
 
     # --- RESULTS & PLOTTING ---
     
     # 1. Execution Flow Plot
     plot_execution_flow(last_episode_traces, NUM_AGENTS, NUM_DEVICES, RESULTS_DIR, "execution_flow.png")
-    print(f" - Execution flow plot saved to {RESULTS_DIR}/execution_flow.png")
+    print(f"\n - Execution flow plot (last seed) saved to {RESULTS_DIR}/execution_flow.png")
 
     # 2. Performance Summary Plot
     plt.figure(figsize=(12, 5))
