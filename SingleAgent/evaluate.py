@@ -87,7 +87,7 @@ def evaluate_single_agent():
     for seed in SEEDS:
         set_global_seed(seed)
         env = MonoAgentIoTEnv(num_agents=1, num_devices=NUM_DEVICES, model_types=[MODEL_TYPE], seed=seed)
-        max_progress = len(env.agents_tasks[0])
+    max_progress = len(env.task)
         test_rewards = []
         test_stalls = []
         test_t_comp = []
@@ -95,7 +95,7 @@ def evaluate_single_agent():
         
         print(f"Running {NUM_EPISODES} test episodes (seed={seed})...")
         for e in range(NUM_EPISODES):
-            states, _ = env.reset()
+            state, _ = env.reset()
             done = False
             ep_reward = 0
             ep_stalls = 0
@@ -105,24 +105,24 @@ def evaluate_single_agent():
             
             step = 0
             while not done and step < 100:
-                valid_actions = env.get_valid_actions(0)
-                action = agent.act(states[0], valid_actions)
-                prev_progress = env.agents_progress[0]
+                valid_actions = env.get_valid_actions()
+                action = agent.act(state, valid_actions)
+                prev_progress = env.progress
                 
-                next_states, rewards, now_dones, truncated, infos = env.step([action])
+                next_state, reward, terminated, truncated, info = env.step(action)
                 
-                if rewards[0] == -500.0:
+                if reward == -500.0:
                     ep_stalls += 1
                 else:
-                    ep_t_comp += infos[0].get('t_comp', 0)
-                    ep_t_comm += infos[0].get('t_comm', 0)
+                    ep_t_comp += info.get('t_comp', 0)
+                    ep_t_comm += info.get('t_comm', 0)
                 
-                if env.agents_progress[0] > prev_progress:
-                     trace.append((prev_progress, int(action)))
+                if env.progress > prev_progress:
+                    trace.append((prev_progress, int(action)))
                 
-                ep_reward += rewards[0]
-                states = next_states
-                done = now_dones[0]
+                ep_reward += reward
+                state = next_state
+                done = terminated
                 step += 1
                 
             test_rewards.append(ep_reward)
@@ -136,7 +136,7 @@ def evaluate_single_agent():
                 elif done:
                     status = "COMPLETED"
                 else:
-                    status = f"STUCK at Layer {env.agents_progress[0]}"
+                    status = f"STUCK at Layer {env.progress}"
                 print(f" Episode {e:2} | Reward: {ep_reward:8.2f} | T_comp: {ep_t_comp:6.2f} | T_comm: {ep_t_comm:6.2f} | Stalls: {ep_stalls:3} | {status}")
                 
             if sample_trace is None or (done and len(trace) > len(sample_trace)):

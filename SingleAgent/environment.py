@@ -2,45 +2,56 @@ import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 from typing import List
-from utils import generate_dummy_dnn_model, DNNLayer, set_global_seed
+try:
+    from SingleAgent.utils import generate_dummy_dnn_model, DNNLayer, set_global_seed
+except ModuleNotFoundError:
+    from utils import generate_dummy_dnn_model, DNNLayer, set_global_seed
 from integrated_system.resource_manager import ResourceManager
 
 class MonoAgentIoTEnv(gym.Env):
     """
-    Multi-Agent Environment where K agents (tasks) compete for resources.
+    Single-Agent Environment where one task schedules its DNN layers.
     """
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, num_agents=3, num_devices=5, model_types=None, seed: int | None = None):
+    def __init__(self, num_agents=1, num_devices=5, model_types=None, seed: int | None = None):
         super(MonoAgentIoTEnv, self).__init__()
-        
-        self.num_agents = num_agents
+
+        if num_agents != 1:
+            raise ValueError("MonoAgentIoTEnv supports only num_agents=1")
+
+        self.num_agents = 1
         self.num_devices = num_devices
         self.seed = seed
         # model_types: List of strings e.g. ["lenet", "resnet18", "mobilenet"]
-        self.model_types = model_types if model_types else ["lenet"] * num_agents
+        if model_types is None:
+            self.model_types = ["lenet"]
+        elif isinstance(model_types, list):
+            self.model_types = model_types
+        else:
+            self.model_types = [model_types]
 
         set_global_seed(seed)
         self.resource_manager = ResourceManager(num_devices)
         self.resource_manager.reset_devices_with_seed(num_devices, seed)
         
         # Action Space: K agents, each chooses a device (0..D-1)
-        self.action_space = spaces.Discrete(num_devices) # Per agent
+        self.action_space = spaces.Discrete(num_devices)
         
         # State Space Per Agent:
-        # [OwnProgress, OtherAgentsProgress..., LayerComp, LayerMem, LayerOut, LayerPriv,
+        # [OwnProgress, LayerComp, LayerMem, LayerOut, LayerPriv,
         #  PrevDeviceValid, PrevDeviceOneHot..., Dev1_CPU, Dev1_Mem, Dev1_BW, Dev1_Priv, Dev1_StepLoad, ...]
         self.layer_feature_dim = 4
         self.prev_device_feature_dim = self.num_devices + 1  # valid-flag + one-hot
-        self.single_state_dim = self.num_agents + self.layer_feature_dim + self.prev_device_feature_dim + (6 * num_devices)
+        self.single_state_dim = 1 + self.layer_feature_dim + self.prev_device_feature_dim + (6 * num_devices)
         self.observation_space = spaces.Box(low=0.0, high=2.0,
                                             shape=(self.single_state_dim,), 
                                             dtype=np.float32)
         
-        self.agents_tasks: List[List[DNNLayer]] = []
-        self.agents_progress: List[int] = [] # Current layer index for each agent
-        self.agents_prev_device: List[int] = [] 
-        self.agents_done: List[bool] = []
+        self.task: List[DNNLayer] = []
+        self.progress = 0
+        self.prev_device = -1
+        self.done = False
         
         self.reset()
         
@@ -48,93 +59,74 @@ class MonoAgentIoTEnv(gym.Env):
         """Resets the environment and the shared resource manager."""
         self.resource_manager.reset(self.num_devices)
         
-        self.agents_tasks = []
-        self.agents_progress = []
-        self.agents_prev_device = []
-        self.agents_done = []
+        try:
+            from SingleAgent.utils import generate_specific_model  # Imported here to avoid circular
+        except ModuleNotFoundError:
+            from utils import generate_specific_model  # Imported here to avoid circular
         
-        from utils import generate_specific_model # Imported here to avoid circular
-        
-        for i in range(self.num_agents):
-            m_type = self.model_types[i] if i < len(self.model_types) else "lenet"
-            self.agents_tasks.append(generate_specific_model(m_type))
-            self.agents_progress.append(0)
-            self.agents_prev_device.append(-1)
-            self.agents_done.append(False)
+        m_type = self.model_types[0] if self.model_types else "lenet"
+        self.task = generate_specific_model(m_type)
+        self.progress = 0
+        self.prev_device = -1
+        self.done = False
             
-        return self._get_all_observations(), {}
+        return self._get_observation(), {}
 
-    def _get_all_observations(self):
-        obs_list = []
-        # Progresses for all agents
-        progresses = []
-        for i in range(self.num_agents):
-            if self.agents_done[i]:
-                progresses.append(1.0)
-            else:
-                total_layers = len(self.agents_tasks[i])
-                progresses.append(float(self.agents_progress[i]) / total_layers)
+    def _get_observation(self):
+        if self.done:
+            return np.zeros(self.single_state_dim, dtype=np.float32)
 
-        for i in range(self.num_agents):
-            if self.agents_done[i]:
-                obs_list.append(np.zeros(self.single_state_dim))
-                continue
-                
-            # Construct state for Agent i
-            # 1. Progres (Own first, then others)
-            current_obs = [progresses[i]]
-            for j in range(self.num_agents):
-                if i != j:
-                    current_obs.append(progresses[j])
+        total_layers = len(self.task)
+        progress = float(self.progress) / total_layers
 
-            # 2. Current layer features (normalized)
-            current_layer = self.agents_tasks[i][self.agents_progress[i]]
-            current_obs.extend([
-                current_layer.computation_demand / 20.0,
-                current_layer.memory_demand / 200.0,
-                current_layer.output_data_size / 25.0,
-                float(current_layer.privacy_level)
-            ])
+        current_obs = [progress]
 
-            # 3. Previous device (valid flag + one-hot)
-            prev_dev = self.agents_prev_device[i]
-            prev_valid = 1.0 if prev_dev != -1 else 0.0
-            current_obs.append(prev_valid)
-            for d_id in range(self.num_devices):
-                current_obs.append(1.0 if prev_dev == d_id else 0.0)
-            
-            # 4. Shared Device States (from Resource Manager)
-            for d_id in range(self.num_devices):
-                # Static state (CPU, Mem, BW, Priv)
-                current_obs.extend(self.resource_manager.get_state_for_device(d_id))
-                # Dynamic state (Current Step Load)
-                step_load = self.resource_manager.step_resources[d_id]
-                current_obs.append(step_load['compute'] / 100.0)
-                current_obs.append(step_load['bw'] / 50.0)
-            
-            obs_list.append(np.array(current_obs, dtype=np.float32))
-        return obs_list
+        # Current layer features (normalized)
+        current_layer = self.task[self.progress]
+        current_obs.extend([
+            current_layer.computation_demand / 20.0,
+            current_layer.memory_demand / 200.0,
+            current_layer.output_data_size / 25.0,
+            float(current_layer.privacy_level)
+        ])
 
-    def get_valid_actions(self, agent_id: int) -> List[int]:
+        # Previous device (valid flag + one-hot)
+        prev_valid = 1.0 if self.prev_device != -1 else 0.0
+        current_obs.append(prev_valid)
+        for d_id in range(self.num_devices):
+            current_obs.append(1.0 if self.prev_device == d_id else 0.0)
+
+        # Shared Device States (from Resource Manager)
+        for d_id in range(self.num_devices):
+            # Static state (CPU, Mem, BW, Priv)
+            current_obs.extend(self.resource_manager.get_state_for_device(d_id))
+            # Dynamic state (Current Step Load)
+            step_load = self.resource_manager.step_resources[d_id]
+            current_obs.append(step_load['compute'] / 100.0)
+            current_obs.append(step_load['bw'] / 50.0)
+
+        return np.array(current_obs, dtype=np.float32)
+
+    def get_valid_actions(self) -> List[int]:
         """
-        Returns a list of valid actions for the given agent in the current state.
-        This mirrors the constraints used in step(), including sequential diversity.
+        Returns a list of valid actions in the current state.
+        Mirrors the constraints used in step().
         """
-        if self.agents_done[agent_id]:
+        if self.done:
             return []
 
         # Mimic start-of-step resource conditions
         self.resource_manager.reset_step_resources()
 
-        progress = self.agents_progress[agent_id]
-        current_layer = self.agents_tasks[agent_id][progress]
-        total_layers = len(self.agents_tasks[agent_id])
+        progress = self.progress
+        current_layer = self.task[progress]
+        total_layers = len(self.task)
         is_first = (progress == 0)
-        prev_dev = self.agents_prev_device[agent_id]
+        prev_dev = self.prev_device
 
         # Pre-compute previous layer output (if any)
         if progress > 0:
-            prev_out = self.agents_tasks[agent_id][progress - 1].output_data_size
+            prev_out = self.task[progress - 1].output_data_size
         else:
             prev_out = 5.0
 
@@ -148,7 +140,7 @@ class MonoAgentIoTEnv(gym.Env):
                 trans_data = 0.0
 
             if self.resource_manager.can_allocate(
-                agent_id=agent_id,
+                agent_id=0,
                 device_id=device_id,
                 layer=current_layer,
                 total_agent_layers=total_layers,
@@ -160,105 +152,95 @@ class MonoAgentIoTEnv(gym.Env):
 
         return valid_actions
 
-    def step(self, actions: List[int]):
+    def step(self, action: int):
         """
-        Executes one step for ALL agents.
+        Executes one step for the single agent.
         Args:
-            actions: List of ints, one for each agent.
+            action: Device id (int)
         """
-        rewards = [0.0] * self.num_agents
-        dones = [False] * self.num_agents
-        infos = [{} for _ in range(self.num_agents)]
-        
+        if self.done:
+            obs = self._get_observation()
+            return obs, 0.0, True, False, {"reward_type": "already_done"}
+
         # Reset step-level resources (CPU/BW bottlenecks)
         self.resource_manager.reset_step_resources()
-        
-        # Conflict resolution: First come first serve based on index
-        agent_indices = list(range(self.num_agents))
-        # np.random.shuffle(agent_indices) # Optional: shuffle for fairness
-        
-        for idx in agent_indices:
-            if self.agents_done[idx]:
-                dones[idx] = True
-                continue
-                
-            action = actions[idx]
-            selected_device_id = int(action)
-            current_layer = self.agents_tasks[idx][self.agents_progress[idx]]
-            total_layers = len(self.agents_tasks[idx])
-            is_first = (self.agents_progress[idx] == 0)
-            
-            # Transmission data calculation
-            prev_dev = self.agents_prev_device[idx]
-            trans_data = 0.0
-            if prev_dev != -1 and prev_dev != selected_device_id:
-                if self.agents_progress[idx] > 0:
-                    trans_data = self.agents_tasks[idx][self.agents_progress[idx]-1].output_data_size
-                else:
-                    trans_data = 5.0 # Initial input
-            elif prev_dev == -1:
-                trans_data = 5.0 # Input
-            
-            # 1. Try Allocate (Enforces Hard Constraints 4.a, 4.b, 4.c, 4.f, 4.h)
-            success = self.resource_manager.try_allocate(
-                agent_id=idx, 
-                device_id=selected_device_id, 
-                layer=current_layer,
-                total_agent_layers=total_layers,
-                is_first_layer=is_first,
-                prev_device_id=prev_dev,
-                transmission_data_size=trans_data
-            )
-            
-            if not success:
-                # Penalty for failure (Constraint violation or Resource Full)
-                # The agent terminates immediately to avoid infinite stalls
-                rewards[idx] = -500.0 # Large stalling penalty
-                self.agents_done[idx] = True # Terminate on stall
-                infos[idx]['reward_type'] = "stall_termination"
-                continue 
 
+        selected_device_id = int(action)
+        current_layer = self.task[self.progress]
+        total_layers = len(self.task)
+        is_first = (self.progress == 0)
+
+        # Transmission data calculation
+        prev_dev = self.prev_device
+        trans_data = 0.0
+        if prev_dev != -1 and prev_dev != selected_device_id:
+            if self.progress > 0:
+                trans_data = self.task[self.progress - 1].output_data_size
             else:
-                # 2. Calculate Latency (Cost)
-                dev = self.resource_manager.devices[selected_device_id]
-                
-                # Compute
-                comp_latency = current_layer.computation_demand / dev.cpu_speed
-                
-                # Transmit
-                trans_latency = 0
-                prev_dev = self.agents_prev_device[idx]
-                
-                if prev_dev != -1 and prev_dev != selected_device_id:
-                     # Get output size of PREVIOUS layer
-                     if self.agents_progress[idx] > 0:
-                         prev_data = self.agents_tasks[idx][self.agents_progress[idx]-1].output_data_size
-                     else:
-                         prev_data = 5.0 # Input
-                     trans_latency = prev_data / dev.bandwidth
-                elif prev_dev == -1:
-                    trans_latency = 5.0 / dev.bandwidth
-                    
-                total_latency = comp_latency + trans_latency
-                rewards[idx] = -total_latency
-                
-                # Add detailed latency info for mapping analysis
-                infos[idx]['t_comp'] = comp_latency
-                infos[idx]['t_comm'] = trans_latency
-                infos[idx]['reward_type'] = "success"
-                
-                self._advance_agent(idx, selected_device_id)
+                trans_data = 5.0  # Initial input
+        elif prev_dev == -1:
+            trans_data = 5.0  # Input
 
-        next_obs = self._get_all_observations()
-        
+        # 1. Try Allocate (Enforces Hard Constraints 4.a, 4.b, 4.c, 4.f, 4.h)
+        success = self.resource_manager.try_allocate(
+            agent_id=0,
+            device_id=selected_device_id,
+            layer=current_layer,
+            total_agent_layers=total_layers,
+            is_first_layer=is_first,
+            prev_device_id=prev_dev,
+            transmission_data_size=trans_data
+        )
+
+        info = {}
+        if not success:
+            # Penalty for failure (Constraint violation or Resource Full)
+            # The agent terminates immediately to avoid infinite stalls
+            reward = -500.0  # Large stalling penalty
+            self.done = True
+            info['reward_type'] = "stall_termination"
+            next_obs = self._get_observation()
+            return next_obs, reward, True, False, info
+
+        # 2. Calculate Latency (Cost)
+        dev = self.resource_manager.devices[selected_device_id]
+
+        # Compute
+        comp_latency = current_layer.computation_demand / dev.cpu_speed
+
+        # Transmit
+        trans_latency = 0.0
+        prev_dev = self.prev_device
+        if prev_dev != -1 and prev_dev != selected_device_id:
+            # Get output size of PREVIOUS layer
+            if self.progress > 0:
+                prev_data = self.task[self.progress - 1].output_data_size
+            else:
+                prev_data = 5.0  # Input
+            trans_latency = prev_data / dev.bandwidth
+        elif prev_dev == -1:
+            trans_latency = 5.0 / dev.bandwidth
+
+        total_latency = comp_latency + trans_latency
+        reward = -total_latency
+
+        # Add detailed latency info for mapping analysis
+        info['t_comp'] = comp_latency
+        info['t_comm'] = trans_latency
+        info['reward_type'] = "success"
+
+        self._advance_agent(selected_device_id)
+
+        next_obs = self._get_observation()
+
         # In Gymnasium, step returns (obs, reward, terminated, truncated, info)
-        terminated = all(self.agents_done)
+        terminated = self.done
         truncated = False
         
-        return next_obs, rewards, self.agents_done, truncated, infos
+        return next_obs, reward, terminated, truncated, info
 
-    def _advance_agent(self, idx, device_id):
-        self.agents_prev_device[idx] = device_id
-        self.agents_progress[idx] += 1
-        if self.agents_progress[idx] >= len(self.agents_tasks[idx]):
-            self.agents_done[idx] = True
+    def _advance_agent(self, device_id):
+        self.prev_device = device_id
+        self.progress += 1
+        if self.progress >= len(self.task):
+            self.done = True

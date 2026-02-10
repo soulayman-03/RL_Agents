@@ -1,5 +1,6 @@
 import sys
 import os
+import time
 
 # Define paths relative to this script
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -48,38 +49,51 @@ def train_single_agent():
     agent.assign_inference_model(cv_model)
     
     # Training Loop
+    start_time = time.time()
     history_rewards = []
     history_stalls = []
     
     for e in range(EPISODES):
         # Gymnasium reset returns (obs, info)
-        states, _ = env.reset()
+        state, _ = env.reset()
         episode_reward = 0
         stalls = 0
         done = False
+        episode_trace = []
         
         step = 0
         MAX_STEPS = 100
         
         while not done and step < MAX_STEPS:
-            # MultiAgentEnv expects a list of actions
-            valid_actions = env.get_valid_actions(0)
-            action = agent.act(states[0], valid_actions)
-            actions = [action]
+            valid_actions = env.get_valid_actions()
+            action = agent.act(state, valid_actions)
             
             # Gymnasium step returns (obs, reward, terminated, truncated, info)
-            next_states, rewards, now_dones, truncated, _ = env.step(actions)
+            next_state, reward, terminated, truncated, _ = env.step(action)
+
+            # Log layer/device choice with layer characteristics
+            layer_idx = env.progress - 1
+            if layer_idx >= 0:
+                layer = env.task[layer_idx]
+                episode_trace.append({
+                    "layer": layer_idx,
+                    "device": int(action),
+                    "comp": float(layer.computation_demand),
+                    "mem": float(layer.memory_demand),
+                    "out": float(layer.output_data_size),
+                    "priv": int(layer.privacy_level),
+                })
             
             # Record stalls (constraint violations)
-            if rewards[0] == -500.0:
+            if reward == -500.0:
                 stalls += 1
             
             # Store experience
-            agent.remember(states[0], actions[0], rewards[0], next_states[0], now_dones[0])
-            episode_reward += rewards[0]
+            agent.remember(state, action, reward, next_state, terminated)
+            episode_reward += reward
             
-            states = next_states
-            done = now_dones[0]
+            state = next_state
+            done = terminated
             step += 1
             
         # Replay at end of episode for faster training
@@ -92,6 +106,15 @@ def train_single_agent():
         # Log EVERY episode as requested
         respected = "YES" if stalls == 0 else f"NO ({stalls} violations)"
         print(f"Episode {e}/{EPISODES} | Reward: {episode_reward:8.2f} | Stalls: {stalls:2} | Constraints Respected: {respected} | Epsilon: {agent.epsilon:.2f}")
+        if episode_trace:
+            print("  Trace: layer -> device | comp mem out priv")
+            for t in episode_trace:
+                print(f"   L{t['layer']:02d} -> D{t['device']} | {t['comp']:5.1f} {t['mem']:5.1f} {t['out']:5.1f} {t['priv']}")
+
+    end_time = time.time()
+    total_time = end_time - start_time
+    minutes = int(total_time // 60)
+    seconds = int(total_time % 60)
 
     # Save trained RL agent
     MODELS_DIR = os.path.join(SCRIPT_DIR, "models")
@@ -103,6 +126,7 @@ def train_single_agent():
     np.save(os.path.join(MODELS_DIR, "single_stall_history.npy"), np.array(history_stalls))
     
     print("\nTraining Complete.")
+    print(f"Total training time: {minutes}m {seconds}s")
     print(f"Model saved to {os.path.join(MODELS_DIR, 'single_agent_simplecnn.pth')}")
 
 if __name__ == "__main__":
