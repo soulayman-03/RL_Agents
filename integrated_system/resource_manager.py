@@ -68,9 +68,9 @@ class ResourceManager:
         d = self.devices[device_id]
         # CPU, Mem Free, Bandwidth, Privacy
         return [
-            d.cpu_speed / 2.0,
-            (d.memory_capacity - d.current_memory_usage) / 500.0,
-            d.bandwidth / 100.0,
+            d.cpu_speed / 50.0,
+            (d.memory_capacity - d.current_memory_usage) / 600.0,
+            d.bandwidth / 300.0,
             float(d.privacy_clearance)
         ]
 

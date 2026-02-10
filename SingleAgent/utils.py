@@ -108,13 +108,12 @@ def generate_iot_network(num_devices=5, seed: int | None = None) -> List[IoTDevi
         set_global_seed(seed)
     devices = []
     for i in range(num_devices):
-        # Deterministic random for reproducibility if needed
         devices.append(IoTDevice(
             device_id=i,
-            cpu_speed=random.uniform(0.5, 2.0),
-            memory_capacity=random.uniform(200, 600), # Increased for multi-agent
+            cpu_speed=random.uniform(35.0, 45.0), # Bottleneck for 3 agents (~15c * 3 = 45c)
+            memory_capacity=random.uniform(450, 550), # Bottleneck for 3 agents (~200m * 2 = 400m)
             current_memory_usage=0.0,
-            bandwidth=random.uniform(20, 100), # Increased
+            bandwidth=random.uniform(100, 300), 
             privacy_clearance=random.choice([0, 1]) 
         ))
     return devices
