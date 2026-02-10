@@ -16,6 +16,34 @@ from split_inference.cnn_model import SimpleCNN
 from utils import load_and_remap_weights, set_global_seed
 import torch
 
+def plot_execution_flow(trace, max_progress, num_devices, seed, results_dir, filename):
+    """Helper to plot the execution strategy trace for a single episode."""
+    plt.figure(figsize=(10, 6))
+    layers = [t['layer'] for t in trace]
+    devices = [t['device'] for t in trace]
+    
+    # Add final point for visualization
+    layers.append(max_progress)
+    devices.append(devices[-1])
+    
+    plt.step(layers, devices, where='post', marker='o', color='green', label='Allocation')
+    
+    # Add latency annotations
+    for t in trace:
+        plt.text(t['layer'], t['device'] + 0.1, f"C:{t['t_comp']:.1f}\n T:{t['t_comm']:.1f}", 
+                 fontsize=8, verticalalignment='bottom', horizontalalignment='center',
+                 bbox=dict(facecolor='white', alpha=0.7, edgecolor='none', boxstyle='round,pad=0.2'))
+
+    plt.yticks(range(num_devices), [f"Device {d}" for d in range(num_devices)])
+    plt.xticks(range(max_progress + 1))
+    plt.xlim(-0.5, max_progress + 0.5)
+    plt.xlabel("Layer Index")
+    plt.ylabel("Device ID")
+    plt.title(f"Execution Strategy - Seed {seed} (Trace Length: {len(trace)}/{max_progress})")
+    plt.grid(True, alpha=0.3)
+    plt.savefig(os.path.join(results_dir, filename))
+    plt.close()
+
 def evaluate_single_agent():
     NUM_EPISODES = 50
     NUM_DEVICES = 5
@@ -82,12 +110,14 @@ def evaluate_single_agent():
     all_seed_stalls = []
     all_seed_t_comp = []
     all_seed_t_comm = []
+    all_seed_traces = []
     sample_trace = None
+    sample_trace_full = None
     
     for seed in SEEDS:
         set_global_seed(seed)
         env = MonoAgentIoTEnv(num_agents=1, num_devices=NUM_DEVICES, model_types=[MODEL_TYPE], seed=seed)
-    max_progress = len(env.task)
+        max_progress = len(env.task)
         test_rewards = []
         test_stalls = []
         test_t_comp = []
@@ -118,7 +148,22 @@ def evaluate_single_agent():
                     ep_t_comm += info.get('t_comm', 0)
                 
                 if env.progress > prev_progress:
-                    trace.append((prev_progress, int(action)))
+                    layer = env.task[prev_progress]
+                    device = env.resource_manager.devices[int(action)]
+                    trace_entry = {
+                        "layer": prev_progress,
+                        "device": int(action),
+                        "comp": float(layer.computation_demand),
+                        "mem": float(layer.memory_demand),
+                        "out": float(layer.output_data_size),
+                        "priv": int(layer.privacy_level),
+                        "d_cpu": float(device.cpu_speed),
+                        "d_mem": float(device.memory_capacity),
+                        "d_bw": float(device.bandwidth),
+                        "t_comp": info.get('t_comp', 0),
+                        "t_comm": info.get('t_comm', 0)
+                    }
+                    trace.append(trace_entry)
                 
                 ep_reward += reward
                 state = next_state
@@ -139,15 +184,26 @@ def evaluate_single_agent():
                     status = f"STUCK at Layer {env.progress}"
                 print(f" Episode {e:2} | Reward: {ep_reward:8.2f} | T_comp: {ep_t_comp:6.2f} | T_comm: {ep_t_comm:6.2f} | Stalls: {ep_stalls:3} | {status}")
                 
-            if sample_trace is None or (done and len(trace) > len(sample_trace)):
-                sample_trace = trace
+                # Print full trace for the very first episode across all seeds for visibility
+                if e == 0:
+                    print("   Full Trace (Lxx -> Dx | L_comp L_mem L_out | D_cpu D_mem D_bw | priv)")
+                    for t in trace:
+                         print(f"    L{t['layer']:02d} -> D{t['device']} | {t['comp']:6.1f} {t['mem']:6.1f} {t['out']:6.1f} | {t['d_cpu']:5.2f} {t['d_mem']:5.1f} {t['d_bw']:5.1f} | {t['priv']}")
+                    
+                    # Generate per-seed plot
+                    plot_execution_flow(trace, max_progress, NUM_DEVICES, seed, RESULTS_DIR, f"execution_flow_seed_{seed}.png")
+
+            if sample_trace_full is None or (done and len(trace) > len(sample_trace_full)):
+                sample_trace_full = trace
+                sample_trace = [(t['layer'], t['device']) for t in trace]
 
         all_seed_rewards.extend(test_rewards)
         all_seed_stalls.extend(test_stalls)
         all_seed_t_comp.extend(test_t_comp)
         all_seed_t_comm.extend(test_t_comm)
+        all_seed_traces.append(trace) # Store one sample trace per seed
 
-    # 3. Plot Distribution
+    # 3. Plot Distribution (Rewards)
     plt.figure(figsize=(10, 5))
     plt.boxplot(all_seed_rewards)
     plt.title(f"Test Reward Distribution ({NUM_EPISODES * len(SEEDS)} episodes)")
@@ -155,33 +211,44 @@ def evaluate_single_agent():
     plt.savefig(f"{RESULTS_DIR}/reward_distribution.png")
     plt.close()
     
-    # 4. Plot Execution Flow (Sample)
-    if sample_trace:
-        plt.figure(figsize=(10, 6))
-        layers = [t[0] for t in sample_trace]
-        devices = [t[1] for t in sample_trace]
-        
-        # Add the final state if completed
-        if len(sample_trace) == max_progress:
-             # Just for visualization, add a point for the "end"
-             layers.append(max_progress)
-             devices.append(devices[-1])
-             
-        plt.step(layers, devices, where='post', marker='o', color='green', label='Allocation')
-        plt.yticks(range(NUM_DEVICES), [f"Device {d}" for d in range(NUM_DEVICES)])
-        plt.xticks(range(max_progress + 1))
-        plt.xlim(-0.5, max_progress + 0.5)
-        plt.xlabel("Layer Index")
-        plt.ylabel("Device ID")
-        plt.title(f"Execution Strategy Trace (Length: {len(sample_trace)}/{max_progress})")
-        plt.grid(True, alpha=0.3)
-        plt.savefig(f"{RESULTS_DIR}/sample_execution_flow.png")
+    # 3.b Plot Latency Composition (Sample of episodes)
+    plt.figure(figsize=(10, 5))
+    ep_indices = range(min(20, len(all_seed_t_comp)))
+    plt.bar(ep_indices, all_seed_t_comp[:20], label='Compute Latency', color='skyblue')
+    plt.bar(ep_indices, all_seed_t_comm[:20], bottom=all_seed_t_comp[:20], label='Comm Latency', color='salmon')
+    plt.title("Latency Composition (First 20 Evaluation Episodes)")
+    plt.xlabel("Episode Index")
+    plt.ylabel("Latency (Time Units)")
+    plt.legend()
+    plt.savefig(f"{RESULTS_DIR}/latency_composition.png")
+    plt.close()
+
+    # 3.c Plot Device Usage Balance
+    all_devices_used = []
+    if sample_trace_full: # Use the full traces collected
+        for ep_trace in all_seed_traces:
+            for step in ep_trace:
+                all_devices_used.append(step['device'])
+    
+    if all_devices_used:
+        plt.figure(figsize=(10, 5))
+        counts = [all_devices_used.count(d) for d in range(NUM_DEVICES)]
+        plt.bar(range(NUM_DEVICES), counts, color='lightgreen')
+        plt.title("Device Load Distribution (Total Layer Assignments)")
+        plt.xlabel("Device ID")
+        plt.ylabel("Number of Layers Assigned")
+        plt.xticks(range(NUM_DEVICES))
+        plt.savefig(f"{RESULTS_DIR}/device_usage_stats.png")
         plt.close()
+
+    # 4. Plot Execution Flow (Summary Sample)
+    if sample_trace_full:
+        plot_execution_flow(sample_trace_full, max_progress, NUM_DEVICES, "Sample", RESULTS_DIR, "sample_execution_flow.png")
 
     avg_reward = float(np.mean(all_seed_rewards)) if all_seed_rewards else 0.0
     std_reward = float(np.std(all_seed_rewards)) if all_seed_rewards else 0.0
     avg_stalls = float(np.mean(all_seed_stalls)) if all_seed_stalls else 0.0
-    print(f"Summary: avg_reward={avg_reward:.2f} | std_reward={std_reward:.2f} | avg_stalls={avg_stalls:.2f}")
+    print(f"\nSummary: avg_reward={avg_reward:.2f} | std_reward={std_reward:.2f} | avg_stalls={avg_stalls:.2f}")
     print(f"Evaluation Complete. Results in {RESULTS_DIR}/")
 
 if __name__ == "__main__":

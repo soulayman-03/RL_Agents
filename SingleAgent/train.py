@@ -75,6 +75,7 @@ def train_single_agent():
             layer_idx = env.progress - 1
             if layer_idx >= 0:
                 layer = env.task[layer_idx]
+                device = env.resource_manager.devices[int(action)]
                 episode_trace.append({
                     "layer": layer_idx,
                     "device": int(action),
@@ -82,6 +83,9 @@ def train_single_agent():
                     "mem": float(layer.memory_demand),
                     "out": float(layer.output_data_size),
                     "priv": int(layer.privacy_level),
+                    "d_cpu": float(device.cpu_speed),
+                    "d_mem": float(device.memory_capacity),
+                    "d_bw": float(device.bandwidth)
                 })
             
             # Record stalls (constraint violations)
@@ -107,9 +111,9 @@ def train_single_agent():
         respected = "YES" if stalls == 0 else f"NO ({stalls} violations)"
         print(f"Episode {e}/{EPISODES} | Reward: {episode_reward:8.2f} | Stalls: {stalls:2} | Constraints Respected: {respected} | Epsilon: {agent.epsilon:.2f}")
         if episode_trace:
-            print("  Trace: layer -> device | comp mem out priv")
+            print("  Trace: layer -> device | L_comp L_mem L_out | D_cpu D_mem D_bw | priv")
             for t in episode_trace:
-                print(f"   L{t['layer']:02d} -> D{t['device']} | {t['comp']:5.1f} {t['mem']:5.1f} {t['out']:5.1f} {t['priv']}")
+                print(f"   L{t['layer']:02d} -> D{t['device']} | {t['comp']:6.1f} {t['mem']:6.1f} {t['out']:6.1f} | {t['d_cpu']:5.2f} {t['d_mem']:5.1f} {t['d_bw']:5.1f} | {t['priv']}")
 
     end_time = time.time()
     total_time = end_time - start_time
