@@ -164,7 +164,7 @@ class MultiAgentIoTEnv(gym.Env):
         Args:
             actions: Dictionary mapping agent_id to device_id
         """
-        rewards = {}
+        rewards = {aid: 0.0 for aid in range(self.num_agents)}
         dones = {}
         infos = {}
 

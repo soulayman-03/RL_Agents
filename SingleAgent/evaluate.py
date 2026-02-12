@@ -50,7 +50,7 @@ def evaluate_single_agent():
     MODEL_TYPE = "simplecnn"
     MODEL_TYPE = "simplecnn"
     SEEDS = [42, 43, 44, 45, 46]
-    RESULTS_DIR = os.path.join(SCRIPT_DIR, "results")
+    RESULTS_DIR = os.path.join(SCRIPT_DIR, "results", "resultDQN")
     MODEL_PATH = os.path.join(SCRIPT_DIR, "models", "single_agent_simplecnn.pth")
     HISTORY_PATH = os.path.join(SCRIPT_DIR, "models", "single_train_history.npy")
     STALL_HISTORY_PATH = os.path.join(SCRIPT_DIR, "models", "single_stall_history.npy")

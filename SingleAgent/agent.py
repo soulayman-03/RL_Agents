@@ -118,3 +118,47 @@ class DQNAgent:
         
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
+
+class DeepSARSAAgent(DQNAgent):
+    """
+    Deep SARSA Agent: On-policy version of DQN.
+    Updates using (s, a, r, s', a') where a' is the actual next action taken.
+    """
+    def remember(self, state, action, reward, next_state, next_action, done):
+        self.memory.append((state, action, reward, next_state, next_action, done))
+
+    def replay(self):
+        if len(self.memory) < self.batch_size:
+            return
+        
+        minibatch = random.sample(self.memory, self.batch_size)
+        
+        states = torch.FloatTensor(np.array([t[0] for t in minibatch])).to(self.device)
+        actions = torch.LongTensor(np.array([t[1] for t in minibatch])).unsqueeze(1).to(self.device)
+        rewards = torch.FloatTensor(np.array([t[2] for t in minibatch])).to(self.device)
+        next_states = torch.FloatTensor(np.array([t[3] for t in minibatch])).to(self.device)
+        next_actions = torch.LongTensor(np.array([t[4] for t in minibatch])).unsqueeze(1).to(self.device)
+        dones = torch.FloatTensor(np.array([t[5] for t in minibatch])).to(self.device)
+        
+        # Q(s, a)
+        curr_q = self.policy_net(states).gather(1, actions).squeeze(1)
+        
+        # SARSA: Q(s, a) = r + gamma * Q(s', a')
+        # We use the target network for Q(s', a') for stability
+        with torch.no_grad():
+            next_q_values = self.target_net(next_states)
+            next_q = next_q_values.gather(1, next_actions).squeeze(1)
+            target_q = rewards + (self.gamma * next_q * (1 - dones))
+        
+        loss = self.criterion(curr_q, target_q)
+        
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
+        self.train_step += 1
+        if self.train_step % self.target_update_freq == 0:
+            self.update_target_network()
+        
+        if self.epsilon > self.epsilon_min:
+            self.epsilon *= self.epsilon_decay

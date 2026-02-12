@@ -84,6 +84,10 @@ def generate_specific_model(model_type="lenet") -> List[DNNLayer]:
              (6.0, 150.0, 0.2),  # FC1 (128)
              (0.1, 1.0, 0.01)    # Output
         ]
+    elif model_type == "cnn7": # 7 layers
+        profiles = [(2.0, 5.0, 2.0)] * 7
+    elif model_type == "cnn10": # 10 layers
+        profiles = [(1.5, 4.0, 1.5)] * 10
     else:
         return generate_specific_model("simplecnn") # Fallback
 
@@ -111,7 +115,7 @@ def generate_iot_network(num_devices=5, seed: int | None = None) -> List[IoTDevi
         devices.append(IoTDevice(
             device_id=i,
             cpu_speed=random.uniform(35.0, 45.0), # Bottleneck for 3 agents (~15c * 3 = 45c)
-            memory_capacity=random.uniform(450, 550), # Bottleneck for 3 agents (~200m * 2 = 400m)
+            memory_capacity=random.uniform(50, 400), # Bottleneck for 3 agents (~200m * 2 = 400m)
             current_memory_usage=0.0,
             bandwidth=random.uniform(100, 300), 
             privacy_clearance=random.choice([0, 1]) 

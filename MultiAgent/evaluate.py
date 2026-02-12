@@ -147,10 +147,26 @@ def evaluate():
                 eval_rewards[i].append(ep_rewards[i])
                 eval_successes[i].append(1 if ep_success[i] else 0)
             
-            # Print only for the first few episodes per seed to avoid clutter
-            if ep < 2:
+            # Detailed Episode Logging for the first episode of each seed
+            if ep == 0:
                 avg_ep_reward = sum(ep_rewards.values())/NUM_AGENTS
                 print(f"Seed {current_seed} | Ep {ep+1} | Avg Reward: {avg_ep_reward:.2f}")
+                for i in range(NUM_AGENTS):
+                    mapping_str = " -> ".join([str(d) for d in agent_ep_mappings[i]])
+                    success_tag = "[SUCCESS]" if ep_success[i] else "[FAILED]"
+                    task_layers = env.tasks[i]
+                    print(f"  Agent {i} ({env.model_types[i]}): {mapping_str} {success_tag} | Reward: {ep_rewards[i]:.2f}")
+                    layer_details = [f"L{l.layer_id}({l.computation_demand}c,{l.memory_demand}m)" for l in task_layers]
+                    print(f"    Layer sizes: {' | '.join(layer_details)}")
+                print("-" * 20)
+            elif ep % 5 == 0:
+                avg_ep_reward = sum(ep_rewards.values())/NUM_AGENTS
+                print(f"Seed {current_seed} | Ep {ep+1} | Avg Reward: {avg_ep_reward:.2f} ...")
+
+        # Seed Summary
+        seed_avg_reward = np.mean([sum(eval_rewards[i][-NUM_EVAL_EPISODES:])/NUM_AGENTS for i in range(NUM_AGENTS)])
+        seed_success_rate = np.mean([np.mean(eval_successes[i][-NUM_EVAL_EPISODES:]) for i in range(NUM_AGENTS)]) * 100
+        print(f"--- Seed {current_seed} Summary: Avg Reward: {seed_avg_reward:.2f}, Success Rate: {seed_success_rate:.1f}% ---")
 
     # --- RESULTS & PLOTTING ---
     
