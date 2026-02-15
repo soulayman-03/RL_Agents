@@ -4,6 +4,7 @@ import time
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
+import json
 
 # Define paths relative to this script
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -12,9 +13,14 @@ PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, '..'))
 # Add parent directory to path
 sys.path.append(PROJECT_ROOT)
 
-from agent import DeepSARSAAgent
-from environment import MonoAgentIoTEnv
-from utils import load_and_remap_weights, set_global_seed
+try:
+    from .agent import DeepSARSAAgent
+    from .environment import MonoAgentIoTEnv
+    from .utils import load_and_remap_weights, set_global_seed
+except ImportError:
+    from agent import DeepSARSAAgent
+    from environment import MonoAgentIoTEnv
+    from utils import load_and_remap_weights, set_global_seed
 from split_inference.cnn_model import SimpleCNN
 
 def plot_execution_strategy(trace, results_dir):
@@ -25,8 +31,8 @@ def plot_execution_strategy(trace, results_dir):
         return
         
     devices = [t['device'] for t in trace]
-    comps = [t['comp'] for t in trace]
-    comms = [t['comm'] for t in trace]
+    comps = [t['t_comp'] for t in trace]
+    comms = [t['t_comm'] for t in trace]
     
     plt.figure(figsize=(10, 6))
     # Create step data
@@ -78,8 +84,9 @@ def train_sarsa_agent():
     NUM_AGENTS = 1
     NUM_DEVICES = 5
     MODEL_TYPES = ["simplecnn"]
-    EPISODES = 1000
+    EPISODES = 2000
     SEED = 42
+    LOG_EVERY = 50
     
     print(f"=== Starting Deep SARSA Agent Training (Model: {MODEL_TYPES[0]}) ===")
     
@@ -100,11 +107,22 @@ def train_sarsa_agent():
     
     agent.assign_inference_model(cv_model)
     
-    # Define results directory
-    RESULTS_DIR = os.path.join(SCRIPT_DIR, "results", "resultSARSA")
-    os.makedirs(RESULTS_DIR, exist_ok=True)
-    MODELS_DIR = os.path.join(RESULTS_DIR, "models")
-    os.makedirs(MODELS_DIR, exist_ok=True)
+    RESULTS_ROOT = os.path.join(SCRIPT_DIR, "results", "resultSARSA")
+    TRAIN_DIR = os.path.join(RESULTS_ROOT, "train")
+    os.makedirs(TRAIN_DIR, exist_ok=True)
+
+    # Keep existing model path to avoid breaking other scripts
+    os.makedirs(RESULTS_ROOT, exist_ok=True)
+
+    # Save all .npy files under SingleAgent/models
+    GLOBAL_MODELS_DIR = os.path.join(SCRIPT_DIR, "models")
+    os.makedirs(GLOBAL_MODELS_DIR, exist_ok=True)
+
+    log_path = os.path.join(TRAIN_DIR, "train_log.jsonl")
+    try:
+        log_f = open(log_path, "w", encoding="utf-8")
+    except Exception:
+        log_f = None
     
     # Training Loop
     start_time = time.time()
@@ -173,12 +191,19 @@ def train_sarsa_agent():
                 ep_net.append(net_v)
                 
                 # Capture trace for final successful strategy plot if no stall yet
-                if reward != -500.0:
-                    current_trace.append({
-                        'device': action,
-                        'comp': info.get('t_comp', 0),
-                        'comm': info.get('t_comm', 0)
-                    })
+                current_trace.append({
+                    'layer': layer_idx,
+                    'device': action,
+                    'l_comp': float(layer.computation_demand),
+                    'l_mem': float(layer.memory_demand),
+                    'l_out': float(layer.output_data_size),
+                    'd_cpu': float(device.cpu_speed),
+                    'd_mem': float(device.memory_capacity),
+                    'd_bw': float(device.bandwidth),
+                    'priv': int(layer.privacy_level),
+                    't_comp': info.get('t_comp', 0),
+                    't_comm': info.get('t_comm', 0)
+                })
 
             if reward == -500.0:
                 stalls += 1
@@ -212,23 +237,63 @@ def train_sarsa_agent():
             history_mem_util.append(0)
             history_network_traffic.append(0)
         
-        if e % 100 == 0:
-            print(f"Episode {e}/{EPISODES} | Reward: {episode_reward:7.2f} | Stalls: {stalls} | CPU: {history_cpu_util[-1]:.2f} | Mem: {history_mem_util[-1]:.2f}")
+        if log_f is not None:
+            try:
+                log_f.write(
+                    json.dumps(
+                        {
+                            "episode": int(e),
+                            "reward": float(episode_reward),
+                            "stalls": int(stalls),
+                            "epsilon": float(agent.epsilon),
+                            "cpu_util_mean": float(history_cpu_util[-1]),
+                            "mem_util_mean": float(history_mem_util[-1]),
+                            "net_traffic_sum": float(history_network_traffic[-1]),
+                            "devices": [int(t["device"]) for t in current_trace],
+                            "trace": current_trace,
+                        },
+                        ensure_ascii=False,
+                    )
+                    + "\n"
+                )
+                log_f.flush()
+            except Exception:
+                pass
+
+        if e % LOG_EVERY == 0 or e == EPISODES - 1:
+            start = max(0, e - LOG_EVERY + 1)
+            last_rewards = history_rewards[start : e + 1]
+            last_stalls = history_stalls[start : e + 1]
+            avg_r = float(np.mean(last_rewards)) if last_rewards else 0.0
+            avg_s = float(np.mean(last_stalls)) if last_stalls else 0.0
+
+            respected = "YES" if stalls == 0 else f"NO ({stalls} violations)"
+            devices = [int(t["device"]) for t in current_trace]
+
+            print(
+                f"[{start}-{e}] | AvgReward: {avg_r:8.2f} | AvgStalls: {avg_s:5.2f} | "
+                f"LastReward: {episode_reward:8.2f} | LastStalls: {stalls:2} | Respected: {respected} | "
+                f"Epsilon: {agent.epsilon:.3f}"
+            )
+            if devices:
+                print(f"  Devices: {devices}")
+                print("  Trace: layer -> device | t_comp t_comm")
+                for t in current_trace:
+                    print(f"   L{int(t['layer']):02d} -> D{int(t['device'])} | {float(t.get('t_comp',0)):6.3f} {float(t.get('t_comm',0)):6.3f}")
 
     end_time = time.time()
-    
     # Save results to sarsaResult
-    agent.save(os.path.join(MODELS_DIR, "sarsa_agent.pth"))
-    np.save(os.path.join(RESULTS_DIR, "sarsa_rewards.npy"), np.array(history_rewards))
-    np.save(os.path.join(RESULTS_DIR, "sarsa_stalls.npy"), np.array(history_stalls))
-    np.save(os.path.join(RESULTS_DIR, "sarsa_cpu.npy"), np.array(history_cpu_util))
-    np.save(os.path.join(RESULTS_DIR, "sarsa_mem.npy"), np.array(history_mem_util))
-    np.save(os.path.join(RESULTS_DIR, "sarsa_net.npy"), np.array(history_network_traffic))
+    agent.save(os.path.join(GLOBAL_MODELS_DIR, "sarsa_agent.pth"))
+    np.save(os.path.join(GLOBAL_MODELS_DIR, "sarsa_train_history.npy"), np.array(history_rewards))
+    np.save(os.path.join(GLOBAL_MODELS_DIR, "sarsa_stall_history.npy"), np.array(history_stalls))
+    np.save(os.path.join(GLOBAL_MODELS_DIR, "sarsa_cpu.npy"), np.array(history_cpu_util))
+    np.save(os.path.join(GLOBAL_MODELS_DIR, "sarsa_mem.npy"), np.array(history_mem_util))
+    np.save(os.path.join(GLOBAL_MODELS_DIR, "sarsa_net.npy"), np.array(history_network_traffic))
     
     # Generate Training Plots
     import matplotlib.pyplot as plt
-    plot_training_reward_history(history_rewards, RESULTS_DIR)
-    plot_execution_strategy(final_successful_trace, RESULTS_DIR)
+    plot_training_reward_history(history_rewards, TRAIN_DIR)
+    plot_execution_strategy(final_successful_trace, TRAIN_DIR)
     
     # Keep standard overview plot as well
     plt.figure(figsize=(15, 10))
@@ -254,9 +319,15 @@ def train_sarsa_agent():
     plt.grid(True)
     
     plt.tight_layout()
-    plt.savefig(os.path.join(RESULTS_DIR, "training_metrics.png"))
+    plt.savefig(os.path.join(TRAIN_DIR, "training_metrics.png"))
+
+    if log_f is not None:
+        try:
+            log_f.close()
+        except Exception:
+            pass
     
-    print(f"\nTraining Complete. All files saved to {RESULTS_DIR}")
+    print(f"\nTraining Complete. All files saved to {TRAIN_DIR}")
 
 if __name__ == "__main__":
     train_sarsa_agent()

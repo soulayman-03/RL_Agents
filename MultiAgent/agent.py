@@ -30,7 +30,7 @@ class DQNAgent:
         self.epsilon_min = 0.01
         self.epsilon_decay = epsilon_decay
         self.batch_size = 64
-        self.memory = deque(maxlen=5000)
+        self.memory = deque(maxlen=50000)
         self.target_update_freq = 1000
         self.train_step = 0
         
@@ -42,7 +42,7 @@ class DQNAgent:
         self.update_target_network()
         
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=self.lr)
-        self.criterion = nn.MSELoss()
+        self.criterion = nn.SmoothL1Loss()
         
         # New: Real CNN Model support
         self.inference_model = None
@@ -60,7 +60,7 @@ class DQNAgent:
         torch.save(self.policy_net.state_dict(), path)
         
     def load(self, path):
-        self.policy_net.load_state_dict(torch.load(path))
+        self.policy_net.load_state_dict(torch.load(path, map_location=self.device))
         self.update_target_network()
 
     def act(self, state, valid_actions=None):
@@ -102,14 +102,17 @@ class DQNAgent:
         # Q(s, a)
         curr_q = self.policy_net(states).gather(1, actions).squeeze(1)
         
-        # Q'(s', a')
-        next_q = self.target_net(next_states).max(1)[0]
-        target_q = rewards + (self.gamma * next_q * (1 - dones))
+        # Double DQN target: a* = argmax_a Q_policy(s', a), evaluate with Q_target
+        with torch.no_grad():
+            next_actions = torch.argmax(self.policy_net(next_states), dim=1, keepdim=True)
+            next_q = self.target_net(next_states).gather(1, next_actions).squeeze(1)
+            target_q = rewards + (self.gamma * next_q * (1 - dones))
         
         loss = self.criterion(curr_q, target_q.detach())
         
         self.optimizer.zero_grad()
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.policy_net.parameters(), 10.0)
         self.optimizer.step()
 
         self.train_step += 1

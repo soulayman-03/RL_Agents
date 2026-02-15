@@ -1,9 +1,22 @@
+import os
+import sys
+
 import numpy as np
 import torch
-from MultiAgent.environment import MultiAgentIoTEnv
-from MultiAgent.manager import MultiAgentManager
+
+# Allow running both:
+# - as a module:  python -m MultiAgent.train
+# - as a script:  python MultiAgent/train.py
+if __package__:
+    from .environment import MultiAgentIoTEnv
+    from .manager import MultiAgentManager
+else:
+    PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if PROJECT_ROOT not in sys.path:
+        sys.path.insert(0, PROJECT_ROOT)
+    from MultiAgent.environment import MultiAgentIoTEnv
+    from MultiAgent.manager import MultiAgentManager
 import matplotlib.pyplot as plt
-import os
 
 def print_device_info(resource_manager):
     print("\n" + "="*50)
@@ -19,19 +32,35 @@ def train():
     NUM_DEVICES = 5
     EPISODES = 5000
     MODEL_TYPES = ["simplecnn", "deepcnn", "miniresnet"]
-    SAVE_PATH = "MultiAgent/models/marl"
-    
-    if not os.path.exists("MultiAgent/models"):
-        os.makedirs("MultiAgent/models")
+    # Disable seed rotation by default to allow learning curves to stabilize.
+    # Set e.g. 100 to rotate the IoT network seed every N episodes.
+    SEED_ROTATION_INTERVAL: int | None = None
 
+    SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+    SAVE_PATH = os.path.join(SCRIPT_DIR, "models", "marl")
+    RESULTS_DIR = os.path.join(SCRIPT_DIR, "results")
+    os.makedirs(os.path.join(SCRIPT_DIR, "models"), exist_ok=True)
+    os.makedirs(RESULTS_DIR, exist_ok=True)
+    
     # Initialize Environment
     TRAIN_SEED = 42
-    env = MultiAgentIoTEnv(num_agents=NUM_AGENTS, num_devices=NUM_DEVICES, model_types=MODEL_TYPES, seed=TRAIN_SEED)
+    env = MultiAgentIoTEnv(
+        num_agents=NUM_AGENTS,
+        num_devices=NUM_DEVICES,
+        model_types=MODEL_TYPES,
+        seed=TRAIN_SEED,
+        shuffle_allocation_order=True,
+    )
     
     # Initialize Manager
     state_dim = env.single_state_dim
     action_dim = env.num_devices
-    manager = MultiAgentManager(agent_ids=list(range(NUM_AGENTS)), state_dim=state_dim, action_dim=action_dim)
+    manager = MultiAgentManager(
+        agent_ids=list(range(NUM_AGENTS)),
+        state_dim=state_dim,
+        action_dim=action_dim,
+        shared_policy=True,
+    )
 
     # Print initial device info
     print_device_info(env.resource_manager)
@@ -41,20 +70,9 @@ def train():
     agent_reward_history = {i: [] for i in range(NUM_AGENTS)}
     agent_success_history = {i: [] for i in range(NUM_AGENTS)}
     
-    results_path = "MultiAgent/results"
-    if not os.path.exists(results_path):
-        os.makedirs(results_path)
-    
     print(f"Starting Multi-Agent Training with {NUM_AGENTS} agents...")
 
-    for ep in range(EPISODES):
-        # Structured seed rotation every 100 episodes for generalization
-        if ep % 100 == 0:
-            current_seed = TRAIN_SEED + (ep // 100)
-            env.resource_manager.reset_devices_with_seed(NUM_DEVICES, current_seed)
-            if ep > 0:
-                print(f"\n--- Rotated IoT Network Seed to {current_seed} for Generalized Learning ---")
-        
+    for ep in range(EPISODES):        
         obs, _ = env.reset()
         total_ep_reward = 0
         agent_ep_rewards = {i: 0 for i in range(NUM_AGENTS)}
@@ -90,7 +108,9 @@ def train():
             total_ep_reward += sum(rewards.values())
 
         # 4. Training (replay)
-        manager.train()
+        # A few replay steps per episode helps stability.
+        for _ in range(3):
+            manager.train()
         
         episode_rewards.append(total_ep_reward)
         for i in range(NUM_AGENTS):
@@ -126,8 +146,21 @@ def train():
     print("Training finished. Models saved.")
 
     # Save Histories
-    np.save(f"{results_path}/agent_reward_history.npy", agent_reward_history)
-    np.save(f"{results_path}/agent_success_history.npy", agent_success_history)
+    np.save(os.path.join(RESULTS_DIR, "episode_reward_history.npy"), np.array(episode_rewards, dtype=float))
+
+    # Prefer portable exports over dict->object .npy
+    np.savez_compressed(
+        os.path.join(RESULTS_DIR, "agent_reward_history.npz"),
+        **{f"agent_{i}": np.array(agent_reward_history[i], dtype=float) for i in range(NUM_AGENTS)},
+    )
+    np.savez_compressed(
+        os.path.join(RESULTS_DIR, "agent_success_history.npz"),
+        **{f"agent_{i}": np.array(agent_success_history[i], dtype=float) for i in range(NUM_AGENTS)},
+    )
+
+    # Backward compatible (legacy object arrays)
+    np.save(os.path.join(RESULTS_DIR, "agent_reward_history.npy"), agent_reward_history)
+    np.save(os.path.join(RESULTS_DIR, "agent_success_history.npy"), agent_success_history)
 
     # Enhanced Plotting: Training Summary
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 15))
@@ -169,9 +202,9 @@ def train():
     ax3.legend()
     
     plt.tight_layout()
-    plt.savefig(f"{results_path}/training_trends.png", dpi=150)
+    plt.savefig(os.path.join(RESULTS_DIR, "training_trends.png"), dpi=150)
     plt.close()
-    print(f"Comprehensive training trends saved to {results_path}/training_trends.png")
+    print(f"Comprehensive training trends saved to {os.path.join(RESULTS_DIR, 'training_trends.png')}")
 
 if __name__ == "__main__":
     train()

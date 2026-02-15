@@ -3,22 +3,30 @@ import os
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
+import json
 
 # Define paths relative to this script
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, '..'))
 sys.path.append(PROJECT_ROOT)
 
-from agent import DeepSARSAAgent
-from environment import MonoAgentIoTEnv
-from utils import load_and_remap_weights, set_global_seed
+try:
+    from .agent import DeepSARSAAgent
+    from .environment import MonoAgentIoTEnv
+    from .utils import load_and_remap_weights, set_global_seed
+except ImportError:
+    from agent import DeepSARSAAgent
+    from environment import MonoAgentIoTEnv
+    from utils import load_and_remap_weights, set_global_seed
 from split_inference.cnn_model import SimpleCNN
 
-def run_test(agent, env, scenario_name, episodes=20):
+def run_test(agent, env, scenario_name, episodes=20, collect_traces=False):
     rewards = []
     stalls = []
     cpu_utils = []
     mem_utils = []
+    all_devices = []
+    all_episode_traces = []
     
     for e in range(episodes):
         state, _ = env.reset()
@@ -28,14 +36,26 @@ def run_test(agent, env, scenario_name, episodes=20):
         
         ep_cpu = []
         ep_mem = []
+        trace = []
         
         valid_actions = env.get_valid_actions()
         action = agent.act(state, valid_actions)
         
         step = 0
         while not done and step < 100:
-            next_state, reward, terminated, truncated, _ = env.step(action)
+            prev_progress = env.progress
+            next_state, reward, terminated, truncated, info = env.step(action)
             done = terminated or truncated
+
+            if env.progress > prev_progress:
+                trace.append(
+                    {
+                        "layer": int(prev_progress),
+                        "device": int(action),
+                        "t_comp": info.get("t_comp", 0.0),
+                        "t_comm": info.get("t_comm", 0.0),
+                    }
+                )
             
             # Choose next action a' from s'
             next_valid_actions = env.get_valid_actions()
@@ -61,6 +81,7 @@ def run_test(agent, env, scenario_name, episodes=20):
             
             dep_reward += reward
             state = next_state
+            all_devices.append(int(action))
             action = next_action
             step += 1
             
@@ -68,22 +89,35 @@ def run_test(agent, env, scenario_name, episodes=20):
         stalls.append(ep_stalls)
         cpu_utils.append(np.mean(ep_cpu) if ep_cpu else 0)
         mem_utils.append(np.mean(ep_mem) if ep_mem else 0)
+        all_episode_traces.append(trace)
         
-    return {
+    summary = {
         "scenario": scenario_name,
         "avg_reward": np.mean(rewards),
         "success_rate": np.mean([1 if s == 0 else 0 for s in stalls]) * 100,
         "avg_cpu": np.mean(cpu_utils),
-        "avg_mem": np.mean(mem_utils)
+        "avg_mem": np.mean(mem_utils),
+        "device_usage": np.bincount(np.asarray(all_devices, dtype=int), minlength=env.num_devices).tolist() if all_devices else [0] * env.num_devices,
     }
+    if collect_traces:
+        return summary, all_episode_traces
+    return summary
 
 def robustness_comparison():
-    RESULTS_DIR = os.path.join(SCRIPT_DIR, "results", "resultSARSA")
+    RESULTS_DIR = os.path.join(SCRIPT_DIR, "results", "resultSARSA", "robustness")
     os.makedirs(RESULTS_DIR, exist_ok=True)
-    MODEL_PATH = os.path.join(RESULTS_DIR, "models", "sarsa_agent.pth")
+    MODEL_PATHS = [
+        os.path.join(SCRIPT_DIR, "models", "sarsa_agent.pth"),
+        os.path.join(SCRIPT_DIR, "results", "resultSARSA", "models", "sarsa_agent.pth"),
+    ]
+    MODEL_PATH = None
+    for p in MODEL_PATHS:
+        if os.path.exists(p):
+            MODEL_PATH = p
+            break
     
-    if not os.path.exists(MODEL_PATH):
-        print("Error: Trained SARSA model not found. Run sarsa_train.py first.")
+    if MODEL_PATH is None:
+        print(f"Error: Trained SARSA model not found. Looked in: {MODEL_PATHS}. Run sarsa_train.py first.")
         return
 
     # Initialize Agent
@@ -154,6 +188,9 @@ def robustness_comparison():
     print("\nRobustness tests complete. Results:")
     for r in results:
         print(f"- {r['scenario']}: Reward={r['avg_reward']:.2f}, Success={r['success_rate']:.1f}%, CPU={r['avg_cpu']:.2f}")
+
+    with open(os.path.join(RESULTS_DIR, "robustness_results.json"), "w", encoding="utf-8") as f:
+        json.dump(results, f, ensure_ascii=False, indent=2)
 
 if __name__ == "__main__":
     robustness_comparison()

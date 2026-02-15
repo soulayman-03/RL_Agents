@@ -4,6 +4,7 @@ import torch.optim as optim
 import numpy as np
 import random
 from collections import deque
+from torch.distributions import Categorical
 
 class DQN(nn.Module):
     def __init__(self, input_dim, output_dim):
@@ -24,7 +25,7 @@ class DQNAgent:
         
         # Hyperparameters
         self.lr = 0.0005
-        self.gamma = 0.99
+        self.gamma = 0.95
         self.epsilon = 1.0
         self.epsilon_min = 0.01
         self.epsilon_decay = 0.9995 # Much slower decay for 2000 episodes
@@ -162,3 +163,130 @@ class DeepSARSAAgent(DQNAgent):
         
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
+
+
+class ActorCritic(nn.Module):
+    def __init__(self, input_dim: int, action_dim: int):
+        super().__init__()
+        self.fc1 = nn.Linear(input_dim, 256)
+        self.fc2 = nn.Linear(256, 256)
+        self.policy_head = nn.Linear(256, action_dim)
+        self.value_head = nn.Linear(256, 1)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        logits = self.policy_head(x)
+        value = self.value_head(x).squeeze(-1)
+        return logits, value
+
+
+class ActorCriticAgent:
+    """
+    Simple on-policy Actor-Critic (A2C-style) for discrete action spaces.
+    Supports action masking via `valid_actions` similarly to DQNAgent.act.
+    """
+
+    def __init__(self, state_dim: int, action_dim: int):
+        self.state_dim = state_dim
+        self.action_dim = action_dim
+
+        self.lr = 3e-4
+        self.gamma = 0.99
+        self.entropy_coef = 0.01
+        self.value_coef = 0.5
+        self.max_grad_norm = 0.5
+
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.net = ActorCritic(state_dim, action_dim).to(self.device)
+        self.optimizer = optim.Adam(self.net.parameters(), lr=self.lr)
+
+        self.inference_model = None
+
+    def assign_inference_model(self, model):
+        self.inference_model = model
+        if self.inference_model:
+            self.inference_model.to(self.device)
+
+    def save(self, path: str) -> None:
+        torch.save(self.net.state_dict(), path)
+
+    def load(self, path: str) -> None:
+        self.net.load_state_dict(torch.load(path, map_location=self.device))
+
+    def _masked_logits(self, logits: torch.Tensor, valid_actions):
+        if valid_actions is None or len(valid_actions) == 0:
+            return logits
+        mask = torch.full((self.action_dim,), float("-inf"), device=logits.device)
+        mask[valid_actions] = 0.0
+        return logits + mask
+
+    @torch.no_grad()
+    def act(self, state, valid_actions=None, deterministic: bool = True) -> int:
+        state_t = torch.as_tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
+        logits, _ = self.net(state_t)
+        logits = logits.squeeze(0)
+        logits = self._masked_logits(logits, valid_actions)
+
+        if deterministic:
+            return int(torch.argmax(logits).item())
+
+        dist = Categorical(logits=logits)
+        return int(dist.sample().item())
+
+    def select_action(self, state, valid_actions=None):
+        """
+        Returns (action, log_prob, value, entropy) for training.
+        """
+        state_t = torch.as_tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
+        logits, value = self.net(state_t)
+        logits = logits.squeeze(0)
+        value = value.squeeze(0)
+
+        logits = self._masked_logits(logits, valid_actions)
+        dist = Categorical(logits=logits)
+        action = dist.sample()
+        log_prob = dist.log_prob(action)
+        entropy = dist.entropy()
+        return int(action.item()), log_prob, value, entropy
+
+    @torch.no_grad()
+    def predict_value(self, state) -> float:
+        state_t = torch.as_tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
+        _, value = self.net(state_t)
+        return float(value.squeeze(0).item())
+
+    def update(self, log_probs, values, rewards, entropies, bootstrap_value: float = 0.0):
+        """
+        Compute discounted returns and perform one optimization step.
+        Inputs are per-timestep tensors/lists collected during one rollout/episode.
+        """
+        if len(rewards) == 0:
+            return 0.0, 0.0, 0.0
+
+        returns = []
+        R = torch.as_tensor(bootstrap_value, dtype=torch.float32, device=self.device)
+        for r in reversed(rewards):
+            R = torch.as_tensor(r, dtype=torch.float32, device=self.device) + self.gamma * R
+            returns.append(R)
+        returns.reverse()
+        returns_t = torch.stack(returns)
+
+        log_probs_t = torch.stack(log_probs)
+        values_t = torch.stack(values)
+        entropies_t = torch.stack(entropies)
+
+        advantages = returns_t - values_t
+
+        policy_loss = -(log_probs_t * advantages.detach()).mean()
+        value_loss = advantages.pow(2).mean()
+        entropy_loss = -entropies_t.mean()
+
+        loss = policy_loss + self.value_coef * value_loss + self.entropy_coef * entropy_loss
+
+        self.optimizer.zero_grad()
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.net.parameters(), self.max_grad_norm)
+        self.optimizer.step()
+
+        return float(policy_loss.item()), float(value_loss.item()), float(entropies_t.mean().item())

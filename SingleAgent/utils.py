@@ -115,11 +115,19 @@ def generate_iot_network(num_devices=5, seed: int | None = None) -> List[IoTDevi
         devices.append(IoTDevice(
             device_id=i,
             cpu_speed=random.uniform(35.0, 45.0), # Bottleneck for 3 agents (~15c * 3 = 45c)
-            memory_capacity=random.uniform(50, 400), # Bottleneck for 3 agents (~200m * 2 = 400m)
+            memory_capacity=random.uniform(200, 400), # Bottleneck for 3 agents (~200m * 2 = 400m)
             current_memory_usage=0.0,
             bandwidth=random.uniform(100, 300), 
             privacy_clearance=random.choice([0, 1]) 
         ))
+
+    # Ensure at least 2 devices can host privacy_level=1 layers (e.g., first layer).
+    min_private = min(2, num_devices)
+    private_count = sum(1 for d in devices if d.privacy_clearance == 1)
+    if private_count < min_private:
+        candidates = [d for d in devices if d.privacy_clearance == 0]
+        for d in random.sample(candidates, k=min_private - private_count):
+            d.privacy_clearance = 1
     return devices
 
 def load_and_remap_weights(model, path, model_type):

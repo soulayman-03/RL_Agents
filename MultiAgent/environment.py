@@ -18,12 +18,24 @@ class MultiAgentIoTEnv(gym.Env):
     """
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, num_agents=3, num_devices=5, model_types=None, seed: int | None = None):
+    def __init__(
+        self,
+        num_agents=3,
+        num_devices=5,
+        model_types=None,
+        seed: int | None = None,
+        shuffle_allocation_order: bool = True,
+        # Set >0 to print resource_manager.last_allocation_fail for debugging.
+        max_fail_logs_per_episode: int = 0,
+    ):
         super(MultiAgentIoTEnv, self).__init__()
 
         self.num_agents = num_agents
         self.num_devices = num_devices
         self.seed = seed
+        self.shuffle_allocation_order = shuffle_allocation_order
+        self.max_fail_logs_per_episode = max(0, int(max_fail_logs_per_episode))
+        self._fail_logs_left = self.max_fail_logs_per_episode
         
         # model_types: list of model types per agent
         if model_types is None:
@@ -61,6 +73,7 @@ class MultiAgentIoTEnv(gym.Env):
     def reset(self):
         """Resets the environment and all agents."""
         self.resource_manager.reset(self.num_devices)
+        self._fail_logs_left = self.max_fail_logs_per_episode
         
         self.tasks = {}
         self.agent_progress = {}
@@ -119,6 +132,9 @@ class MultiAgentIoTEnv(gym.Env):
         return np.array(current_obs, dtype=np.float32)
 
     def get_valid_actions(self) -> Dict[int, List[int]]:
+        # Step-level resources are meant to be per-timestep (agents competing in the same step).
+        # Ensure we don't leak previous step's allocations into validity checks.
+        self.resource_manager.reset_step_resources()
         valid_actions_dict = {}
         for agent_id in range(self.num_agents):
             if self.agent_done[agent_id]:
@@ -171,10 +187,13 @@ class MultiAgentIoTEnv(gym.Env):
         # Important: Reset step-level resources at the start of ORCHESTRATED interaction
         self.resource_manager.reset_step_resources()
 
-        # 1. Randomize order for processing allocations (Social Fairness)
-        # This prevents Agent 0 from always having priority over Agent 1 and 2
+        # 1. Order for processing allocations (Social Fairness)
+        # Randomization prevents Agent 0 from always having priority.
         agent_ids = list(actions.keys())
-        random.shuffle(agent_ids)
+        if self.shuffle_allocation_order:
+            random.shuffle(agent_ids)
+        else:
+            agent_ids.sort()
 
         for aid in agent_ids:
             if self.agent_done[aid]:
@@ -210,9 +229,26 @@ class MultiAgentIoTEnv(gym.Env):
             )
 
             if not success:
+                fail = getattr(self.resource_manager, "last_allocation_fail", {}) or {}
+                if self.max_fail_logs_per_episode > 0 and self._fail_logs_left > 0:
+                    self._fail_logs_left -= 1
+                    reason = fail.get("reason", "unknown") if isinstance(fail, dict) else "unknown"
+                    layer_idx = int(self.agent_progress[aid])
+                    layer = self.tasks[aid][layer_idx] if layer_idx < len(self.tasks[aid]) else None
+                    layer_desc = (
+                        f"{getattr(layer, 'name', f'layer_{layer_idx}')}"
+                        f"(c={getattr(layer, 'computation_demand', '?')},m={getattr(layer, 'memory_demand', '?')},p={getattr(layer, 'privacy_level', '?')})"
+                        if layer is not None
+                        else f"layer_{layer_idx}"
+                    )
+                    print(
+                        "[ALLOC_FAIL] "
+                        f"agent={aid} model={self.model_types[aid]} layer={layer_desc} "
+                        f"device={selected_device_id} reason={reason} details={fail}"
+                    )
                 rewards[aid] = -500.0
                 self.agent_done[aid] = True
-                infos[aid] = {"reward_type": "stall_termination", "success": False}
+                infos[aid] = {"reward_type": "stall_termination", "success": False, "fail": fail}
                 continue
 
             # 3. Latency Calculation

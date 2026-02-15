@@ -30,9 +30,13 @@ def train():
     EPISODES = 1000 # Lower for testing
     MODEL_TYPES = ["simplecnn", "cnn7", "cnn10"]
     SAVE_PATH = os.path.join(SCRIPT_DIR, "models", "marl_test")
+    RESULTS_DIR = os.path.join(SCRIPT_DIR, "results")
+    # Disable device seed rotation by default to let curves stabilize.
+    # Set e.g. 100 to rotate every N episodes.
+    SEED_ROTATION_INTERVAL: int | None = None
     
-    if not os.path.exists(os.path.join(SCRIPT_DIR, "models")):
-        os.makedirs(os.path.join(SCRIPT_DIR, "models"))
+    os.makedirs(os.path.join(SCRIPT_DIR, "models"), exist_ok=True)
+    os.makedirs(RESULTS_DIR, exist_ok=True)
 
     # Initialize Environment
     TRAIN_SEED = 42
@@ -51,16 +55,12 @@ def train():
     agent_reward_history = {i: [] for i in range(NUM_AGENTS)}
     agent_success_history = {i: [] for i in range(NUM_AGENTS)}
     
-    results_path = os.path.join(SCRIPT_DIR, "results")
-    if not os.path.exists(results_path):
-        os.makedirs(results_path)
-    
     print(f"Starting Multi-Agent Test Training with {NUM_AGENTS} agents (Heterogeneous)...")
 
     for ep in range(EPISODES):
-        # Structured seed rotation every 100 episodes
-        if ep % 100 == 0:
-            current_seed = TRAIN_SEED + (ep // 100)
+        # Optional seed rotation for generalization.
+        if SEED_ROTATION_INTERVAL and SEED_ROTATION_INTERVAL > 0 and ep % SEED_ROTATION_INTERVAL == 0:
+            current_seed = TRAIN_SEED + (ep // SEED_ROTATION_INTERVAL)
             env.resource_manager.reset_devices_with_seed(NUM_DEVICES, current_seed)
         
         obs, _ = env.reset()
@@ -119,21 +119,72 @@ def train():
     manager.save_agents(SAVE_PATH)
     print(f"Test Training finished. Models saved to {SAVE_PATH}")
 
-    # Plot results
-    plt.figure(figsize=(10, 6))
+    # Save histories (portable)
+    np.save(os.path.join(RESULTS_DIR, "episode_reward_history.npy"), np.array(episode_rewards, dtype=float))
+    np.savez_compressed(
+        os.path.join(RESULTS_DIR, "agent_reward_history.npz"),
+        **{f"agent_{i}": np.array(agent_reward_history[i], dtype=float) for i in range(NUM_AGENTS)},
+    )
+    np.savez_compressed(
+        os.path.join(RESULTS_DIR, "agent_success_history.npz"),
+        **{f"agent_{i}": np.array(agent_success_history[i], dtype=float) for i in range(NUM_AGENTS)},
+    )
+
+    # Training summary plots (same style as MultiAgent/train.py)
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 15))
+    window = 50
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c']
+
+    for i in range(NUM_AGENTS):
+        rewards = agent_reward_history[i]
+        if len(rewards) >= window:
+            smoothed = np.convolve(rewards, np.ones(window) / window, mode='valid')
+            ax1.plot(
+                range(window - 1, len(rewards)),
+                smoothed,
+                label=f'Agent {i} ({MODEL_TYPES[i]})',
+                color=colors[i % len(colors)],
+                linewidth=2,
+            )
+    ax1.set_title("Reward Convergence (Moving Average)", fontsize=14)
+    ax1.set_ylabel("Reward", fontsize=12)
+    ax1.grid(True, linestyle='--', alpha=0.6)
+    ax1.legend(fontsize=10)
+
     for i in range(NUM_AGENTS):
         successes = agent_success_history[i]
-        window = 20
         if len(successes) >= window:
-            smoothed = np.convolve(successes, np.ones(window)/window, mode='valid') * 100
-            plt.plot(smoothed, label=f'Agent {i} ({MODEL_TYPES[i]})')
-    plt.title("Success Rate Convergence (Heterogeneous Test)")
-    plt.ylabel("Success Rate (%)")
-    plt.xlabel("Episode")
-    plt.legend()
-    plt.grid(True)
-    plt.savefig(f"{results_path}/test_trends.png")
+            smoothed = np.convolve(successes, np.ones(window) / window, mode='valid') * 100
+            ax2.plot(
+                range(window - 1, len(successes)),
+                smoothed,
+                label=f'Agent {i}',
+                color=colors[i % len(colors)],
+                linewidth=2,
+            )
+    ax2.set_title("Success Rate (%) Convergence", fontsize=14)
+    ax2.set_ylabel("Success Rate %", fontsize=12)
+    ax2.set_ylim(-5, 105)
+    ax2.grid(True, linestyle='--', alpha=0.6)
+    ax2.legend(fontsize=10)
+
+    first_agent = manager.agents[0]
+    epsilons = [
+        first_agent.epsilon_min
+        + (1.0 - first_agent.epsilon_min) * np.exp(-first_agent.epsilon_decay * step)
+        for step in range(EPISODES)
+    ]
+    ax3.plot(epsilons, color='purple', linewidth=2, label='Epsilon')
+    ax3.set_title("Exploration Rate (Epsilon) Decay", fontsize=14)
+    ax3.set_xlabel("Episode", fontsize=12)
+    ax3.set_ylabel("Epsilon", fontsize=12)
+    ax3.grid(True, linestyle='--', alpha=0.6)
+    ax3.legend()
+
+    plt.tight_layout()
+    plt.savefig(os.path.join(RESULTS_DIR, "training_trends.png"), dpi=150)
     plt.close()
+    print(f"Training trends saved to {os.path.join(RESULTS_DIR, 'training_trends.png')}")
 
 if __name__ == "__main__":
     train()

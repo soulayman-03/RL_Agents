@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import sys
 import os
 import torch
+import argparse
 
 # Define paths relative to this script
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -52,13 +53,77 @@ def plot_execution_flow(all_traces, num_agents, num_devices, results_dir, filena
     plt.savefig(os.path.join(results_dir, filename))
     plt.close()
 
-def evaluate():
+def plot_layer_latency(all_episode_traces_by_agent, tasks_by_agent, results_dir, filename_prefix):
+    """
+    Plot average layer-wise latency breakdown (computation vs communication) per agent.
+    `all_episode_traces_by_agent[aid]` is a list of traces; each trace is list of dicts with:
+      {layer, t_comp, t_comm, ...}
+    """
+    for aid, traces in all_episode_traces_by_agent.items():
+        task = tasks_by_agent.get(aid)
+        if not task:
+            continue
+
+        num_layers = len(task)
+        comp = np.zeros(num_layers, dtype=float)
+        comm = np.zeros(num_layers, dtype=float)
+        counts = np.zeros(num_layers, dtype=float)
+
+        for trace in traces:
+            for t in trace:
+                if not isinstance(t, dict) or "layer" not in t:
+                    continue
+                layer = int(t["layer"])
+                if layer < 0 or layer >= num_layers:
+                    continue
+                comp[layer] += float(t.get("t_comp", 0.0))
+                comm[layer] += float(t.get("t_comm", 0.0))
+                counts[layer] += 1.0
+
+        if float(np.sum(counts)) == 0.0:
+            plt.figure(figsize=(14, 5))
+            plt.text(
+                0.5,
+                0.5,
+                f"No successful allocations recorded for Agent {aid}\n"
+                f"(try more episodes or enable shuffle_allocation_order).",
+                ha="center",
+                va="center",
+                transform=plt.gca().transAxes,
+            )
+            plt.axis("off")
+            plt.tight_layout()
+            plt.savefig(os.path.join(results_dir, f"{filename_prefix}_agent_{aid}.png"))
+            plt.close()
+            continue
+
+        counts[counts == 0] = 1.0
+        comp /= counts
+        comm /= counts
+
+        layer_names = [getattr(l, "name", f"Layer_{i}") for i, l in enumerate(task)]
+        x = np.arange(num_layers)
+        width = 0.4
+
+        plt.figure(figsize=(14, 5))
+        plt.bar(x - width / 2, comp, width, label="Computation")
+        plt.bar(x + width / 2, comm, width, label="Communication")
+        plt.xticks(x, layer_names, rotation=60)
+        plt.ylabel("Latency (s)")
+        plt.xlabel("Layers")
+        plt.title(f"Average Layer-wise Latency Breakdown - Agent {aid}")
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(os.path.join(results_dir, f"{filename_prefix}_agent_{aid}.png"))
+        plt.close()
+
+def evaluate(eval_seeds=None, num_eval_episodes: int = 10, results_dir: str | None = None):
     NUM_AGENTS = 3
     NUM_DEVICES = 5
     MODEL_TYPES = ["simplecnn", "deepcnn", "miniresnet"]
     MODEL_PATH = os.path.join(SCRIPT_DIR, "models", "marl")
-    RESULTS_DIR = os.path.join(SCRIPT_DIR, "results")
-    NUM_EVAL_EPISODES = 10
+    RESULTS_DIR = results_dir or os.path.join(SCRIPT_DIR, "results")
+    NUM_EVAL_EPISODES = int(num_eval_episodes)
     
     if not os.path.exists(RESULTS_DIR):
         os.makedirs(RESULTS_DIR)
@@ -67,12 +132,21 @@ def evaluate():
     
     # Initialize Environment with same seed as we will set in training
     EVAL_SEED = 42
-    env = MultiAgentIoTEnv(num_agents=NUM_AGENTS, num_devices=NUM_DEVICES, model_types=MODEL_TYPES, seed=EVAL_SEED)
+    env = MultiAgentIoTEnv(
+        num_agents=NUM_AGENTS,
+        num_devices=NUM_DEVICES,
+        model_types=MODEL_TYPES,
+        seed=EVAL_SEED,
+        # Avoid starvation: randomize allocation priority per step so agents 1/2
+        # don't systematically stall behind agent 0.
+        shuffle_allocation_order=True,
+    )
     
     # Initialize and Load Agents
     manager = MultiAgentManager(agent_ids=list(range(NUM_AGENTS)), 
                                 state_dim=env.single_state_dim, 
-                                action_dim=env.num_devices)
+                                action_dim=env.num_devices,
+                                shared_policy=True)
     
     expected_models = [os.path.exists(f"{MODEL_PATH}_agent_{i}.pt") for i in range(NUM_AGENTS)]
     if all(expected_models):
@@ -89,10 +163,13 @@ def evaluate():
     eval_successes = {i: [] for i in range(NUM_AGENTS)}
     
     # Seeds to test for generalization
-    EVAL_SEEDS = [42, 55, 66, 77, 88]
+    EVAL_SEEDS = list(eval_seeds) if eval_seeds is not None else [42]
     
     # To store for execution flow plot (from last seed, last episode)
     last_episode_traces = {i: [] for i in range(NUM_AGENTS)}
+    # To store traces for latency breakdown plots
+    all_episode_traces_by_agent = {i: [] for i in range(NUM_AGENTS)}
+    tasks_by_agent = {}
 
     for seed_idx, current_seed in enumerate(EVAL_SEEDS):
         print(f"\n--- Testing Generalization - Seed: {current_seed} ---")
@@ -100,15 +177,22 @@ def evaluate():
         
         for ep in range(NUM_EVAL_EPISODES):
             obs, _ = env.reset()
+            # Snapshot tasks once (assumed stable shape for plots per agent)
+            if not tasks_by_agent:
+                tasks_by_agent = {i: env.tasks[i] for i in range(NUM_AGENTS)}
+
             done = {i: False for i in range(NUM_AGENTS)}
             # To track agent mappings for this episode
             agent_ep_mappings = {i: [] for i in range(NUM_AGENTS)}
             ep_rewards = {i: 0 for i in range(NUM_AGENTS)}
             ep_success = {i: False for i in range(NUM_AGENTS)}
+            ep_traces = {i: [] for i in range(NUM_AGENTS)}
             
             while not all(done.values()):
                 valid_actions = env.get_valid_actions()
                 actions = manager.get_actions(obs, valid_actions)
+
+                step_layers = {aid: env.agent_progress[aid] for aid in range(NUM_AGENTS) if not done[aid]}
                 
                 # Record choices
                 for aid, device_id in actions.items():
@@ -134,6 +218,17 @@ def evaluate():
                         if aid in rewards and rewards[aid] > -500:
                             last_episode_traces[aid][-1]['lat'] = -rewards[aid]
 
+                # Record per-layer latency breakdown traces (all episodes)
+                for aid in range(NUM_AGENTS):
+                    if aid in infos and infos[aid].get("success") and aid in step_layers:
+                        ep_traces[aid].append({
+                            "layer": int(step_layers[aid]),
+                            "device": int(actions[aid]),
+                            "t_comp": float(infos[aid].get("t_comp", 0.0)),
+                            "t_comm": float(infos[aid].get("t_comm", 0.0)),
+                            "model": env.model_types[aid],
+                        })
+
                 obs = next_obs
                 done = next_done
                 
@@ -142,6 +237,9 @@ def evaluate():
                         ep_rewards[i] += rewards[i]
                     if i in infos and infos[i].get("success") and env.agent_progress[i] == len(env.tasks[i]):
                          ep_success[i] = True
+
+            for i in range(NUM_AGENTS):
+                all_episode_traces_by_agent[i].append(ep_traces[i])
 
             for i in range(NUM_AGENTS):
                 eval_rewards[i].append(ep_rewards[i])
@@ -198,6 +296,20 @@ def evaluate():
     plt.close()
     print(f" - Evaluation summary plot saved to {RESULTS_DIR}/evaluation_summary.png")
 
+    # 3. Layer-wise latency breakdown plots (avg across all evaluated episodes)
+    plot_layer_latency(all_episode_traces_by_agent, tasks_by_agent, RESULTS_DIR, "layer_latency_avg")
+    print(f" - Layer-wise latency breakdown saved to {RESULTS_DIR}/layer_latency_avg_agent_*.png")
+
+    # Save evaluation raw results (portable)
+    np.savez_compressed(
+        os.path.join(RESULTS_DIR, "evaluation_rewards.npz"),
+        **{f"agent_{i}": np.array(eval_rewards[i], dtype=float) for i in range(NUM_AGENTS)},
+    )
+    np.savez_compressed(
+        os.path.join(RESULTS_DIR, "evaluation_successes.npz"),
+        **{f"agent_{i}": np.array(eval_successes[i], dtype=float) for i in range(NUM_AGENTS)},
+    )
+
     # 3. Training Trends
     train_curve_old = "MultiAgent/training_curve.png"
     train_curve_new = os.path.join(RESULTS_DIR, "training_curve.png")
@@ -214,4 +326,16 @@ def evaluate():
         print(f"Agent {i} ({MODEL_TYPES[i]}): Avg Reward = {np.mean(eval_rewards[i]):.2f}, Success Rate = {np.mean(eval_successes[i])*100:.1f}%")
 
 if __name__ == "__main__":
-    evaluate()
+    parser = argparse.ArgumentParser(description="Evaluate MARL agents and generate plots.")
+    parser.add_argument("--seed", type=int, default=42, help="Single seed to evaluate (default: 42).")
+    parser.add_argument("--seeds", type=str, default=None, help="Comma-separated seeds (overrides --seed).")
+    parser.add_argument("--episodes", type=int, default=10, help="Episodes per seed.")
+    parser.add_argument("--results-dir", type=str, default=None, help="Output directory for plots/results.")
+    args = parser.parse_args()
+
+    if args.seeds:
+        seeds = [int(s.strip()) for s in args.seeds.split(",") if s.strip()]
+    else:
+        seeds = [int(args.seed)]
+
+    evaluate(eval_seeds=seeds, num_eval_episodes=int(args.episodes), results_dir=args.results_dir)
