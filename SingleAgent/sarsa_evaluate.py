@@ -74,7 +74,6 @@ def sarsa_evaluate():
     RESULTS_ROOT = os.path.join(SCRIPT_DIR, "results", "resultSARSA")
     RESULTS_DIR = os.path.join(RESULTS_ROOT, "eval")
     os.makedirs(RESULTS_DIR, exist_ok=True)
-
     MODEL_PATHS = [
         os.path.join(SCRIPT_DIR, "models", "sarsa_agent.pth"),    # preferred (global models folder)
         os.path.join(RESULTS_ROOT, "models", "sarsa_agent.pth"),  # backward-compat
@@ -84,7 +83,6 @@ def sarsa_evaluate():
         if os.path.exists(p):
             MODEL_PATH = p
             break
-
     if MODEL_PATH is None:
         print(f"Error: Trained SARSA model not found. Looked in: {MODEL_PATHS}.")
         return
