@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+
+# Models / weights
+*.pth
+*.pt
+
+# Training data
+*.npy
+*.npz
+
+# Logs
+*.log
+*.jsonl
+
+# Dataset
+data/
+
+# IDE
+.vscode/

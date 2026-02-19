@@ -1,0 +1,67 @@
+{
+  "algo": "MADDPG",
+  "episodes": 50,
+  "shuffle_allocation_order": true,
+  "seed_base": 10000,
+  "per_agent": {
+    "0": {
+      "model_type": "simplecnn",
+      "episodes": 50,
+      "success_rate": 94.0,
+      "avg_t_comp": 0.09973869400107997,
+      "avg_t_comm": 0.03347051418291528,
+      "avg_latency": 0.13320920818399526,
+      "device_counts": {
+        "2": 58,
+        "0": 78,
+        "4": 54,
+        "1": 28,
+        "3": 20
+      },
+      "fail_reasons": {
+        "memory": 3
+      }
+    },
+    "1": {
+      "model_type": "deepcnn",
+      "episodes": 50,
+      "success_rate": 92.0,
+      "avg_t_comp": 0.17864417302320557,
+      "avg_t_comm": 0.04417959382344957,
+      "avg_latency": 0.22282376684665514,
+      "device_counts": {
+        "2": 92,
+        "4": 91,
+        "1": 34,
+        "0": 15,
+        "3": 6
+      },
+      "fail_reasons": {
+        "memory": 4
+      }
+    },
+    "2": {
+      "model_type": "miniresnet",
+      "episodes": 50,
+      "success_rate": 86.0,
+      "avg_t_comp": 0.19725074163484202,
+      "avg_t_comm": 0.06713045071199826,
+      "avg_latency": 0.26438119234684027,
+      "device_counts": {
+        "3": 73,
+        "1": 93,
+        "4": 44,
+        "2": 28
+      },
+      "fail_reasons": {
+        "memory": 7
+      }
+    }
+  },
+  "team": {
+    "success_rate": 76.0,
+    "return_mean": -47.63011320531651,
+    "return_std": 88.41417897146147,
+    "episode_steps_mean": 4.76
+  }
+}

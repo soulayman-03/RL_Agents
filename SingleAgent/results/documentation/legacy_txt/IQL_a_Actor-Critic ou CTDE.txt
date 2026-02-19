@@ -1,0 +1,25 @@
+changer de DQN vers un autre type d'algorithme (comme PPO ou des méthodes spécifiques au Multi-Agent comme VDN/QMIX) changerait plusieurs aspects fondamentaux du projet :
+
+1. Si on passait à Actor-Critic (ex: PPO, A2C)
+Stabilité : PPO est généralement plus stable que DQN. DQN peut "diverger" (le score s'effondre soudainement), alors que PPO limite les changements brutaux de politique.
+Exploration : DQN explore en choisissant des actions au hasard (epsilon-greedy). PPO explore via une distribution de probabilité, ce qui est souvent plus "nuancé".
+2. Si on passait au CTDE (Centralized Training, Decentralized Execution)
+Actuellement, vous utilisez du IQL (Independent Q-Learning) : chaque agent fait sa vie en ignorant un peu les détails des autres (sauf via l'état du réseau). Passer à VDN (Value Decomposition Networks) ou QMIX changerait tout :
+
+La coopération "innée" : Au lieu d'avoir un "Social Reward" (30% du groupe), le réseau de neurones lui-même apprendrait à maximiser une valeur Q-totale de l'équipe.
+Le problème du crédit : QMIX permet de savoir exactement quel agent a pris la décision qui a fait rater l'épisode, même si les trois agents tournent en même temps. C'est beaucoup plus puissant pour résoudre les conflits complexes.
+3. Impact sur la complexité du code
+DQN (Actuel) : C'est le plus simple. Facile à débugger, efficace pour des actions discrètes (choisir un Device de 0 à 4).
+PPO/QMIX : Nécessite des architectures beaucoup plus lourdes (Mixer networks, Target networks synchronisés, buffers de relecture plus complexes).
+
+
+depuis DQN a Actor-Critic
+
+Architecture minimale (par agent)
+
+🔹 Avant (DQN)
+state → Q-network → Q-values → argmax action
+
+🔹 Après (Actor–Critic)
+state → Actor → π(a|s) → action
+state → Critic → V(s)
