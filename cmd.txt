@@ -1,0 +1,14 @@
+python SingleAgent/dqn_train.py --model-type cnn15 --max-exposure-fraction 0.5 --seed 42 --episodes 2000
+python SingleAgent/dqn_train.py --model-type cnn15 --max-exposure-fraction 0.33 --seed 42 --episodes 2000
+python SingleAgent/dqn_train.py --model-type cnn15 --max-exposure-fraction 0.20 --seed 42 --episodes 2000
+python SingleAgent/compare_sl.py --algorithm DQN --model cnn15 --seed 42 --sl 0.5 0.33 0.2
+python MultiAgentMADDPG/train.py --episodes 2000 --seed 42 --sl 1.0 0.5 0.33 0.2
+python MultiAgentMADDPG/compare_sl.py --seed 42 --sl 1.0 0.5 0.33 0.2
+
+# MADDPG scenarios (3 agents) with S_l = 1, 0.5, 0.33
+python MultiAgentMADDPG/train.py --episodes 2000 --seed 42 --sl 1.0 0.5 0.33 --models cnn15
+python MultiAgentMADDPG/train.py --episodes 2000 --seed 42 --sl 1.0 0.5 0.33 --models cnn15 miniresnet hugecnn
+
+# MATD3 (CTDE) - example
+python MultiAgentMATD3/train.py --episodes 2000 --seed 42 --sl 1.0 0.5 0.33 --models cnn15 miniresnet hugecnn
+python MultiAgentMATD3/train.py --episodes 2000 --seed 42 --sl 1.0 --models cnn15 miniresnet hugecnn --max-fail-logs 2

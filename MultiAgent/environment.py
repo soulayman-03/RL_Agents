@@ -25,6 +25,7 @@ class MultiAgentIoTEnv(gym.Env):
         model_types=None,
         seed: int | None = None,
         shuffle_allocation_order: bool = True,
+        max_exposure_fraction: float | None = None,
         # Set >0 to print resource_manager.last_allocation_fail for debugging.
         max_fail_logs_per_episode: int = 0,
     ):
@@ -47,6 +48,11 @@ class MultiAgentIoTEnv(gym.Env):
 
         set_global_seed(seed)
         self.resource_manager = ResourceManager(num_devices)
+        self.max_exposure_fraction = max_exposure_fraction
+        try:
+            self.resource_manager.set_max_exposure_fraction(max_exposure_fraction)
+        except AttributeError:
+            pass
         self.resource_manager.reset_devices_with_seed(num_devices, seed)
         
         # Action/Observation space definitions (can be per-agent or global)
@@ -72,6 +78,10 @@ class MultiAgentIoTEnv(gym.Env):
         
     def reset(self):
         """Resets the environment and all agents."""
+        try:
+            self.resource_manager.set_max_exposure_fraction(self.max_exposure_fraction)
+        except AttributeError:
+            pass
         self.resource_manager.reset(self.num_devices)
         self._fail_logs_left = self.max_fail_logs_per_episode
         

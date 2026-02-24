@@ -1,0 +1,8 @@
+{
+  "algorithm": "DQN",
+  "model_type": "cnn15",
+  "episodes": 2000,
+  "seed": 42,
+  "num_devices": 5,
+  "max_exposure_fraction": 0.5
+}

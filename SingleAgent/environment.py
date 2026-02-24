@@ -14,7 +14,14 @@ class MonoAgentIoTEnv(gym.Env):
     """
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, num_agents=1, num_devices=5, model_types=None, seed: int | None = None):
+    def __init__(
+        self,
+        num_agents=1,
+        num_devices=5,
+        model_types=None,
+        seed: int | None = None,
+        max_exposure_fraction: float | None = None,
+    ):
         super(MonoAgentIoTEnv, self).__init__()
 
         if num_agents != 1:
@@ -33,6 +40,12 @@ class MonoAgentIoTEnv(gym.Env):
 
         set_global_seed(seed)
         self.resource_manager = ResourceManager(num_devices)
+        self.max_exposure_fraction = max_exposure_fraction
+        try:
+            self.resource_manager.set_max_exposure_fraction(max_exposure_fraction)
+        except AttributeError:
+            # Backward compatibility if ResourceManager doesn't support this yet.
+            pass
         self.resource_manager.reset_devices_with_seed(num_devices, seed)
         
         # Action Space: K agents, each chooses a device (0..D-1)
@@ -57,6 +70,10 @@ class MonoAgentIoTEnv(gym.Env):
         
     def reset(self):
         """Resets the environment and the shared resource manager."""
+        try:
+            self.resource_manager.set_max_exposure_fraction(self.max_exposure_fraction)
+        except AttributeError:
+            pass
         self.resource_manager.reset(self.num_devices)
         
         try:

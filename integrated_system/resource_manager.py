@@ -1,4 +1,5 @@
 from typing import List, Dict
+import math
 from SingleAgent.utils import IoTDevice, DNNLayer, generate_iot_network, set_global_seed
 class ResourceManager:
     """
@@ -25,8 +26,26 @@ class ResourceManager:
             self.step_resources: Dict[int, Dict[str, float]] = {d_id: {'compute': 0.0, 'bw': 0.0} for d_id in range(num_devices)}
             # Last allocation failure info for debugging
             self.last_allocation_fail: Dict[str, object] = {}
-            
+
+            # Security-level constraint: max fraction of an agent's model layers that can be exposed
+            # to a single device (per episode). Set to 1.0 to disable.
+            self.max_exposure_fraction: float = 1.0
+             
             self.initialized = True
+
+    def set_max_exposure_fraction(self, value: float | None) -> None:
+        """
+        Sets the max fraction (S_l) of an agent's model that may be assigned to a single device.
+        - value=None or value>=1.0 disables the constraint
+        - value in (0,1) enables it (e.g., 0.5 means at most floor(L*0.5) layers per device)
+        """
+        if value is None:
+            self.max_exposure_fraction = 1.0
+            return
+        v = float(value)
+        if not math.isfinite(v) or v <= 0.0:
+            raise ValueError(f"max_exposure_fraction must be > 0, got {value}")
+        self.max_exposure_fraction = v
 
     def reset(self, num_devices=5):
         """
@@ -144,6 +163,25 @@ class ResourceManager:
                         "total_layers": total_agent_layers
                     }
                     return False
+
+        # 3b. Security level constraint (S_l): cap how many layers of an agent can be exposed to one device.
+        # Enforced per agent, per device, across the episode.
+        max_frac = float(getattr(self, "max_exposure_fraction", 1.0))
+        if max_frac < 1.0:
+            total_layers = max(1, int(total_agent_layers))
+            max_layers_on_device = int(math.floor(total_layers * max_frac))
+            max_layers_on_device = max(1, max_layers_on_device)
+            already_on_device = int(self.assignment_history.get(agent_id, {}).get(device_id, 0))
+            if already_on_device + 1 > max_layers_on_device:
+                self.last_allocation_fail = {
+                    "reason": "security_level_exposure",
+                    "device_id": device_id,
+                    "already_on_device": already_on_device,
+                    "max_layers_on_device": max_layers_on_device,
+                    "total_layers": total_layers,
+                    "max_exposure_fraction": max_frac,
+                }
+                return False
 
         # 4. Check Compute Constraint (4.b)
         current_step_compute = self.step_resources[device_id]['compute']

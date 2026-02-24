@@ -49,6 +49,8 @@ def generate_specific_model(model_type="lenet") -> List[DNNLayer]:
     if not isinstance(model_type, str):
         model_type = str(model_type)
     model_type = model_type.lower()
+    if model_type == "hugcnn":
+        model_type = "hugecnn"
     layers = []
     
     if model_type == "lenet": # 6 layers
@@ -125,6 +127,8 @@ def generate_specific_model(model_type="lenet") -> List[DNNLayer]:
         profiles = [(2.0, 5.0, 2.0)] * 7
     elif model_type == "cnn10": # 10 layers
         profiles = [(1.5, 4.0, 1.5)] * 10
+    elif model_type == "cnn15": # 15 layers (for S_l impact testing)
+        profiles = [(1.3, 4.0, 1.2)] * 15
     else:
         return generate_specific_model("simplecnn") # Fallback
 
@@ -151,15 +155,15 @@ def generate_iot_network(num_devices=5, seed: int | None = None) -> List[IoTDevi
     for i in range(num_devices):
         devices.append(IoTDevice(
             device_id=i,
-            cpu_speed=random.uniform(35.0, 45.0), # Bottleneck for 3 agents (~15c * 3 = 45c)
-            memory_capacity=random.uniform(400, 1000), # Bottleneck for 3 agents (~200m * 2 = 400m)
+            cpu_speed=random.uniform(45.0, 55.0), # Bottleneck for 3 agents (~15c * 3 = 45c)
+            memory_capacity=random.uniform(800, 1500), # Bottleneck for 3 agents (~200m * 2 = 400m)
             current_memory_usage=0.0,
-            bandwidth=random.uniform(100, 300), 
+            bandwidth=random.uniform(150, 350), 
             privacy_clearance=random.choice([0, 1]) 
         ))
 
     # Ensure at least 2 devices can host privacy_level=1 layers (e.g., first layer).
-    min_private = min(2, num_devices)
+    min_private = min(3, num_devices)
     private_count = sum(1 for d in devices if d.privacy_clearance == 1)
     if private_count < min_private:
         candidates = [d for d in devices if d.privacy_clearance == 0]

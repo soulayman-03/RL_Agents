@@ -2,6 +2,7 @@ import sys
 import os
 import time
 import json
+import argparse
 
 # Define paths relative to this script
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -41,7 +42,72 @@ def plot_training_scalar(values, title, ylabel, out_path, window=50):
     plt.close()
 
 
-def train_single_agent():
+def plot_execution_strategy(trace, results_dir, num_devices=5, out_name="execution_strategy.png"):
+    """
+    Visualizes the selected device per layer as a step plot, with compute/comm latencies annotated.
+    Expects trace items like: {"layer": int, "device": int, "t_comp": float, "t_comm": float}
+    """
+    if not trace:
+        return
+
+    import matplotlib.pyplot as plt
+
+    trace_sorted = sorted(trace, key=lambda t: int(t.get("layer", 0)))
+    devices = [int(t.get("device", 0)) for t in trace_sorted]
+    comps = [float(t.get("t_comp", 0.0)) for t in trace_sorted]
+    comms = [float(t.get("t_comm", 0.0)) for t in trace_sorted]
+
+    if not devices:
+        return
+
+    plt.figure(figsize=(10, 6))
+    x = np.arange(len(devices) + 1)
+    y = devices + [devices[-1]]
+    plt.step(x, y, where="post", color="green", linewidth=1.5)
+    plt.scatter(range(len(devices)), devices, color="green", zorder=5)
+
+    for i, (d, c, t) in enumerate(zip(devices, comps, comms)):
+        plt.text(i, d + 0.1, f"C:{c:.2f}\nT:{t:.2f}", ha="center", va="bottom", fontsize=8)
+
+    plt.yticks(range(num_devices), [f"Device {i}" for i in range(num_devices)])
+    plt.xticks(range(len(devices) + 1))
+    plt.xlabel("Layer Index")
+    plt.ylabel("Device ID")
+    plt.title(f"Execution Strategy - DQN (Trace Length: {len(devices)}/{len(devices)})")
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(os.path.join(results_dir, out_name))
+    plt.close()
+
+
+def _sl_tag(max_exposure_fraction: float) -> str:
+    return f"sl_{float(max_exposure_fraction):.2f}".replace(".", "p")
+
+
+def _make_run_dirs(*, algorithm: str, model: str, max_exposure_fraction: float, seed: int) -> tuple[str, str]:
+    safe_algo = (algorithm or "algo").replace(os.sep, "_")
+    safe_model = (model or "model").replace(os.sep, "_")
+    run_root = os.path.join(
+        SCRIPT_DIR,
+        "results",
+        "resultDQN",
+        safe_algo,
+        safe_model,
+        _sl_tag(max_exposure_fraction),
+        f"seed_{int(seed)}",
+    )
+    train_dir = os.path.join(run_root, "train")
+    os.makedirs(train_dir, exist_ok=True)
+    return run_root, train_dir
+
+
+def train_single_agent(
+    *,
+    max_exposure_fraction: float = 1.0,
+    episodes: int = 5000,
+    seed: int = 42,
+    model_type: str = "simplecnn",
+):
     """
     Trains a single agent to schedule its DNN layers across 5 devices.
     Uses the MultiAgentIoTEnv configured with num_agents=1.
@@ -55,16 +121,23 @@ def train_single_agent():
 
     NUM_AGENTS = 1
     NUM_DEVICES = 5
-    MODEL_TYPES = ["simplecnn"]
-    EPISODES = 5000
-    SEED = 42
+    MODEL_TYPES = [str(model_type)]
+    EPISODES = int(episodes)
+    SEED = int(seed)
     LOG_EVERY = 50
-    
+     
     print(f"=== Starting Single Agent Training (Model: {MODEL_TYPES[0]}) ===")
-    
+    print(f"  S_l (max exposure fraction): {float(max_exposure_fraction):.3f}")
+     
     # Initialize Environment
     set_global_seed(SEED)
-    env = MonoAgentIoTEnv(num_agents=NUM_AGENTS, num_devices=NUM_DEVICES, model_types=MODEL_TYPES, seed=SEED)
+    env = MonoAgentIoTEnv(
+        num_agents=NUM_AGENTS,
+        num_devices=NUM_DEVICES,
+        model_types=MODEL_TYPES,
+        seed=SEED,
+        max_exposure_fraction=max_exposure_fraction,
+    )
     
     # Initialize Agent
     agent = DQNAgent(state_dim=env.single_state_dim, action_dim=NUM_DEVICES)
@@ -86,10 +159,34 @@ def train_single_agent():
     history_rewards = []
     history_stalls = []
     history_epsilons = []
+    final_successful_trace = []
 
-    RESULTS_ROOT = os.path.join(SCRIPT_DIR, "results", "resultDQN")
-    TRAIN_DIR = os.path.join(RESULTS_ROOT, "train")
-    os.makedirs(TRAIN_DIR, exist_ok=True)
+    RUN_ROOT, TRAIN_DIR = _make_run_dirs(
+        algorithm="DQN",
+        model=str(MODEL_TYPES[0]),
+        max_exposure_fraction=float(max_exposure_fraction),
+        seed=SEED,
+    )
+    print(f"  RunDir: {RUN_ROOT}")
+
+    config_path = os.path.join(RUN_ROOT, "run_config.json")
+    try:
+        with open(config_path, "w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "algorithm": "DQN",
+                    "model_type": str(MODEL_TYPES[0]),
+                    "episodes": int(EPISODES),
+                    "seed": int(SEED),
+                    "num_devices": int(NUM_DEVICES),
+                    "max_exposure_fraction": float(max_exposure_fraction),
+                },
+                f,
+                ensure_ascii=False,
+                indent=2,
+            )
+    except Exception:
+        pass
 
     log_path = os.path.join(TRAIN_DIR, "train_log.jsonl")
     try:
@@ -146,6 +243,9 @@ def train_single_agent():
             done = terminated
             step += 1
             
+        if stalls == 0 and done and episode_trace:
+            final_successful_trace = episode_trace
+
         # Replay at end of episode for faster training
         for _ in range(5):
             agent.replay()
@@ -163,6 +263,7 @@ def train_single_agent():
                             "reward": float(episode_reward),
                             "stalls": int(stalls),
                             "epsilon": float(agent.epsilon),
+                            "max_exposure_fraction": float(max_exposure_fraction),
                             "devices": [int(t["device"]) for t in episode_trace],
                             "trace": episode_trace,
                         },
@@ -225,17 +326,54 @@ def train_single_agent():
         os.path.join(TRAIN_DIR, "dqn_epsilon.png"),
         window=200,
     )
+    plot_execution_strategy(final_successful_trace, TRAIN_DIR, num_devices=NUM_DEVICES, out_name="execution_strategy.png")
 
     if log_f is not None:
         try:
             log_f.close()
         except Exception:
             pass
-    
+
+    try:
+        last_k = 100
+        avg_reward_last = float(np.mean(history_rewards[-last_k:])) if history_rewards else 0.0
+        avg_stalls_last = float(np.mean(history_stalls[-last_k:])) if history_stalls else 0.0
+        summary_path = os.path.join(RUN_ROOT, "summary.json")
+        with open(summary_path, "w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "episodes": int(EPISODES),
+                    "seed": int(SEED),
+                    "model_type": str(MODEL_TYPES[0]),
+                    "max_exposure_fraction": float(max_exposure_fraction),
+                    "avg_reward_last_100": avg_reward_last,
+                    "avg_stalls_last_100": avg_stalls_last,
+                    "best_reward": float(np.max(history_rewards)) if history_rewards else None,
+                    "worst_reward": float(np.min(history_rewards)) if history_rewards else None,
+                },
+                f,
+                ensure_ascii=False,
+                indent=2,
+            )
+    except Exception:
+        pass
+     
     print("\nTraining Complete.")
     print(f"Total training time: {_fmt_seconds(total_time)}")
     print(f"Model saved to {os.path.join(MODELS_DIR, 'single_agent_simplecnn.pth')}")
     print(f"Training results in {TRAIN_DIR}/")
 
 if __name__ == "__main__":
-    train_single_agent()
+    parser = argparse.ArgumentParser(description="Train Single-Agent DQN for DNN layer scheduling.")
+    parser.add_argument("--max-exposure-fraction", type=float, default=1.0, help="S_l in (0,1]. 1.0 disables.")
+    parser.add_argument("--episodes", type=int, default=5000)
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--model-type", type=str, default="simplecnn")
+    args = parser.parse_args()
+
+    train_single_agent(
+        max_exposure_fraction=float(args.max_exposure_fraction),
+        episodes=int(args.episodes),
+        seed=int(args.seed),
+        model_type=str(args.model_type),
+    )

@@ -1,0 +1,33 @@
+{
+  "algorithm": "DQN",
+  "model": "cnn15",
+  "seed": 42,
+  "sl_values": [
+    0.5,
+    0.33,
+    0.2
+  ],
+  "rows": [
+    {
+      "sl": 0.5,
+      "run_root": "C:\\Users\\soulaimane\\Desktop\\PFE\\RL\\SingleAgent\\results\\resultDQN\\DQN\\cnn15\\sl_0p50\\seed_42",
+      "avg_reward_last_100": -0.6098032523206443,
+      "avg_stalls_last_100": 0.0,
+      "episodes_logged": 2000
+    },
+    {
+      "sl": 0.33,
+      "run_root": "C:\\Users\\soulaimane\\Desktop\\PFE\\RL\\SingleAgent\\results\\resultDQN\\DQN\\cnn15\\sl_0p33\\seed_42",
+      "avg_reward_last_100": -0.6171573913838874,
+      "avg_stalls_last_100": 0.0,
+      "episodes_logged": 2000
+    },
+    {
+      "sl": 0.2,
+      "run_root": "C:\\Users\\soulaimane\\Desktop\\PFE\\RL\\SingleAgent\\results\\resultDQN\\DQN\\cnn15\\sl_0p20\\seed_42",
+      "avg_reward_last_100": -425.58221892682457,
+      "avg_stalls_last_100": 0.85,
+      "episodes_logged": 2000
+    }
+  ]
+}

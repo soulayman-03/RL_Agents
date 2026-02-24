@@ -24,14 +24,15 @@ def plot_training_trends(
     out_path: str,
     team_rewards: Sequence[float],
     losses: Sequence[float],
-    eps_history: Sequence[float],
+    eps_history: Sequence[float] | None = None,
     window: int = 50,
 ) -> None:
     team_rewards = np.asarray(team_rewards, dtype=np.float32)
     losses = np.asarray(losses, dtype=np.float32)
-    eps_history = np.asarray(eps_history, dtype=np.float32)
 
-    fig, axes = plt.subplots(3, 1, figsize=(12, 12), constrained_layout=True)
+    # NOTE: We intentionally do not plot exploration (epsilon) here to keep the figure focused.
+    # `eps_history` is kept for backward compatibility with older training scripts.
+    fig, axes = plt.subplots(2, 1, figsize=(12, 8.5), constrained_layout=True)
 
     ax = axes[0]
     ax.plot(team_rewards, color="#1f77b4", alpha=0.35, linewidth=1, label="Team return (mean/step)")
@@ -57,13 +58,40 @@ def plot_training_trends(
     ax.grid(True, linestyle="--", alpha=0.4)
     ax.legend()
 
-    ax = axes[2]
-    ax.plot(eps_history, color="#9467bd", linewidth=2, label="Epsilon")
-    ax.set_title("Training Trends: Exploration")
+    fig.savefig(out_path, dpi=160)
+    plt.close(fig)
+
+
+def plot_avg_cumulative_rewards(
+    out_path: str,
+    episode_team_reward_sums: Sequence[float],
+    num_agents: int,
+    window: int = 50,
+    ylim: tuple[float, float] | None = None,
+) -> None:
+    """
+    Average cumulative rewards vs training episodes.
+
+    - "cumulative" = sum of step rewards over an episode
+    - "average" = divided by number of agents
+    """
+    sums = np.asarray(episode_team_reward_sums, dtype=np.float32)
+    denom = float(max(1, int(num_agents)))
+    avg_cum = sums / denom
+
+    fig, ax = plt.subplots(1, 1, figsize=(12, 5.5), constrained_layout=True)
+    ax.plot(avg_cum, color="#2ca02c", alpha=0.35, linewidth=1, label="Avg cumulative reward/episode (per agent)")
+    if avg_cum.size >= window:
+        ma = np.convolve(avg_cum, np.ones(window) / window, mode="valid")
+        ax.plot(np.arange(window - 1, len(avg_cum)), ma, color="#2ca02c", linewidth=2, label=f"Moving avg ({window})")
+    ax.set_title("Average Cumulative Rewards vs Training Episodes")
     ax.set_xlabel("Episode")
-    ax.set_ylabel("Epsilon")
+    ax.set_ylabel("Avg cumulative reward")
     ax.grid(True, linestyle="--", alpha=0.4)
     ax.legend()
+    if ylim is not None:
+        y0, y1 = float(ylim[0]), float(ylim[1])
+        ax.set_ylim(min(y0, y1), max(y0, y1))
 
     fig.savefig(out_path, dpi=160)
     plt.close(fig)
@@ -74,6 +102,7 @@ def plot_per_agent_training_rewards(
     agent_reward_history: Dict[int, Sequence[float]],
     model_types: Dict[int, str] | None = None,
     window: int = 50,
+    ylim: tuple[float, float] | None = None,
 ) -> None:
     agent_ids = sorted(int(a) for a in agent_reward_history.keys())
     fig, ax = plt.subplots(1, 1, figsize=(12, 5.5), constrained_layout=True)
@@ -105,48 +134,12 @@ def plot_per_agent_training_rewards(
     ax.set_ylabel("Reward (sum per episode)")
     ax.grid(True, linestyle="--", alpha=0.4)
     ax.legend(fontsize=9)
+    if ylim is not None:
+        y0, y1 = float(ylim[0]), float(ylim[1])
+        ax.set_ylim(min(y0, y1), max(y0, y1))
 
     fig.savefig(out_path, dpi=160)
     plt.close(fig)
-
-
-def plot_evaluation_summary(
-    out_path: str,
-    team_returns: Sequence[float],
-    team_success: Sequence[float],
-    episode_steps: Sequence[int],
-) -> None:
-    team_returns = np.asarray(team_returns, dtype=np.float32)
-    team_success = np.asarray(team_success, dtype=np.float32)
-    episode_steps = np.asarray(episode_steps, dtype=np.int32)
-
-    fig, axes = plt.subplots(1, 3, figsize=(15, 4.5), constrained_layout=True)
-
-    ax = axes[0]
-    ax.hist(team_returns, bins=20, color="#1f77b4", alpha=0.85)
-    ax.set_title("Evaluation: Team Return Distribution")
-    ax.set_xlabel("Return (mean/step)")
-    ax.set_ylabel("Count")
-    ax.grid(True, linestyle="--", alpha=0.25)
-
-    ax = axes[1]
-    sr = float(np.mean(team_success) * 100.0) if len(team_success) else 0.0
-    ax.bar(["Team Success"], [sr], color="#2ca02c", alpha=0.9)
-    ax.set_ylim(0, 100)
-    ax.set_title("Evaluation: Success Rate")
-    ax.set_ylabel("%")
-    ax.grid(True, axis="y", linestyle="--", alpha=0.25)
-
-    ax = axes[2]
-    ax.hist(episode_steps, bins=20, color="#7f7f7f", alpha=0.85)
-    ax.set_title("Evaluation: Episode Length")
-    ax.set_xlabel("Steps")
-    ax.set_ylabel("Count")
-    ax.grid(True, linestyle="--", alpha=0.25)
-
-    fig.savefig(out_path, dpi=160)
-    plt.close(fig)
-
 
 def plot_marl_eval_summary(
     out_path: str,

@@ -286,3 +286,7 @@ class HugeCNN(nn.Module):
         for layer in self.layers:
             x = layer(x)
         return x
+
+
+# Backward/typo-friendly alias used by some training scripts.
+HugCNN = HugeCNN

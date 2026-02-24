@@ -1,0 +1,10 @@
+{
+  "episodes": 2000,
+  "seed": 42,
+  "model_type": "cnn15",
+  "max_exposure_fraction": 0.33,
+  "avg_reward_last_100": -0.6171573913838874,
+  "avg_stalls_last_100": 0.0,
+  "best_reward": -0.6153455284523549,
+  "worst_reward": -0.6393209098419218
+}
