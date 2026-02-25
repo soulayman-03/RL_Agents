@@ -232,3 +232,199 @@ def plot_execution_flow(out_path: str, flow: EvalEpisodeFlow) -> None:
 
     fig.savefig(out_path, dpi=160)
     plt.close(fig)
+
+
+def plot_training_execution_strategy(
+    out_path: str,
+    layer_device_map: dict[str, dict[str, int]] | dict[int, dict[int, int]],
+    model_types: dict[int, str] | dict[str, str] | None = None,
+    num_devices: int = 5,
+    title: str = "Execution Strategy (Training Episode)",
+) -> None:
+    """
+    Plots the (layer -> device) allocation per agent for one representative training episode.
+
+    layer_device_map format:
+      {agent_id: {layer_idx: device_id}}
+    where keys may be str or int (JSONL logs use str keys).
+    """
+    if not layer_device_map:
+        return
+
+    # Normalize keys to int
+    per_agent: dict[int, dict[int, int]] = {}
+    for a_key, mapping in (layer_device_map or {}).items():
+        try:
+            aid = int(a_key)
+        except Exception:
+            continue
+        if not isinstance(mapping, dict):
+            continue
+        per_layer: dict[int, int] = {}
+        for l_key, dev in mapping.items():
+            try:
+                li = int(l_key)
+                di = int(dev)
+            except Exception:
+                continue
+            per_layer[li] = di
+        per_agent[aid] = per_layer
+
+    agent_ids = sorted(per_agent.keys())
+    if not agent_ids:
+        return
+
+    fig, axes = plt.subplots(len(agent_ids), 1, figsize=(12, 3.2 * len(agent_ids)), constrained_layout=True)
+    if len(agent_ids) == 1:
+        axes = [axes]
+
+    for ax, aid in zip(axes, agent_ids, strict=True):
+        mapping = per_agent.get(aid, {}) or {}
+        if not mapping:
+            ax.set_title(f"Agent {aid} (no allocations)")
+            ax.axis("off")
+            continue
+
+        xs = np.asarray(sorted(mapping.keys()), dtype=np.int32)
+        ys = np.asarray([mapping[int(x)] for x in xs], dtype=np.int32)
+
+        ax.plot(xs, ys, color="#2ca02c", alpha=0.85, linewidth=1.5)
+        ax.scatter(xs, ys, color="#2ca02c", s=18, alpha=0.9)
+        ax.set_yticks(range(int(num_devices)))
+        ax.set_ylabel("Device")
+
+        label = f"Agent {aid}"
+        if model_types is not None:
+            try:
+                mt = model_types.get(aid) if isinstance(model_types, dict) else None
+                if mt is None:
+                    mt = model_types.get(str(aid)) if isinstance(model_types, dict) else None
+            except Exception:
+                mt = None
+            if mt:
+                label += f" ({mt})"
+        ax.set_title(label)
+        ax.grid(True, linestyle="--", alpha=0.35)
+
+    axes[-1].set_xlabel("Layer index")
+    fig.suptitle(title)
+    fig.savefig(out_path, dpi=160)
+    plt.close(fig)
+
+
+def plot_layer_latency(
+    out_path: str,
+    all_episode_traces: Sequence[Sequence[dict]],
+    task: Sequence[object],
+    title: str = "Average Layer-wise Latency Breakdown",
+) -> None:
+    """
+    Bar plot of average per-layer computation vs communication latency.
+
+    all_episode_traces: list of traces, each trace is a list of dicts containing:
+      {"layer": int, "t_comp": float, "t_comm": float}
+    task: list of layer objects with a `.name` attribute (or will fallback to `layer_{i}`)
+    """
+    num_layers = len(task)
+    if num_layers <= 0:
+        return
+
+    comp = np.zeros(num_layers, dtype=np.float32)
+    comm = np.zeros(num_layers, dtype=np.float32)
+    counts = np.zeros(num_layers, dtype=np.float32)
+
+    for trace in all_episode_traces or []:
+        for t in trace or []:
+            if not isinstance(t, dict) or "layer" not in t:
+                continue
+            layer = int(t.get("layer", 0))
+            if layer < 0 or layer >= num_layers:
+                continue
+            comp[layer] += float(t.get("t_comp", 0.0))
+            comm[layer] += float(t.get("t_comm", 0.0))
+            counts[layer] += 1.0
+
+    counts[counts == 0] = 1.0
+    comp = comp / counts
+    comm = comm / counts
+
+    layer_names = [str(getattr(layer, "name", f"layer_{i}")) for i, layer in enumerate(task)]
+    x = np.arange(num_layers)
+    width = 0.4
+
+    plt.figure(figsize=(14, 5))
+    plt.bar(x - width / 2, comp, width, label="Computation")
+    plt.bar(x + width / 2, comm, width, label="Communication")
+    plt.xticks(x, layer_names, rotation=60, ha="right")
+    plt.ylabel("Latency")
+    plt.xlabel("Layers")
+    plt.title(title)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=160)
+    plt.close()
+
+
+def plot_per_agent_layer_latency(
+    out_path: str,
+    per_agent_traces: Dict[int, Sequence[Sequence[dict]]],
+    per_agent_tasks: Dict[int, Sequence[object]],
+    model_types: Dict[int, str] | None = None,
+    title: str = "Average Layer-wise Latency Breakdown (per agent)",
+) -> None:
+    """
+    Same as plot_layer_latency, but one subplot per agent.
+    """
+    agent_ids = sorted(int(a) for a in per_agent_tasks.keys())
+    if not agent_ids:
+        return
+
+    fig, axes = plt.subplots(len(agent_ids), 1, figsize=(14, 4.2 * len(agent_ids)), constrained_layout=True)
+    if len(agent_ids) == 1:
+        axes = [axes]
+
+    for ax, aid in zip(axes, agent_ids, strict=True):
+        task = list(per_agent_tasks.get(aid, []) or [])
+        traces = list(per_agent_traces.get(aid, []) or [])
+        num_layers = len(task)
+        if num_layers <= 0 or not traces:
+            ax.set_title(f"Agent {aid} (no data)")
+            ax.axis("off")
+            continue
+
+        comp = np.zeros(num_layers, dtype=np.float32)
+        comm = np.zeros(num_layers, dtype=np.float32)
+        counts = np.zeros(num_layers, dtype=np.float32)
+
+        for trace in traces:
+            for t in trace or []:
+                if not isinstance(t, dict) or "layer" not in t:
+                    continue
+                layer = int(t.get("layer", 0))
+                if layer < 0 or layer >= num_layers:
+                    continue
+                comp[layer] += float(t.get("t_comp", 0.0))
+                comm[layer] += float(t.get("t_comm", 0.0))
+                counts[layer] += 1.0
+
+        counts[counts == 0] = 1.0
+        comp = comp / counts
+        comm = comm / counts
+
+        layer_names = [str(getattr(layer, "name", f"layer_{i}")) for i, layer in enumerate(task)]
+        x = np.arange(num_layers)
+        width = 0.4
+        ax.bar(x - width / 2, comp, width, label="Computation", alpha=0.9)
+        ax.bar(x + width / 2, comm, width, label="Communication", alpha=0.9)
+        ax.set_xticks(x, layer_names, rotation=60, ha="right")
+        ax.set_ylabel("Latency")
+        label = f"Agent {aid}"
+        if model_types and aid in model_types:
+            label += f" ({model_types[aid]})"
+        ax.set_title(label)
+        ax.grid(True, axis="y", linestyle="--", alpha=0.25)
+        ax.legend()
+
+    fig.suptitle(title)
+    fig.savefig(out_path, dpi=160)
+    plt.close(fig)

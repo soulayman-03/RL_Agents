@@ -13,14 +13,32 @@ import numpy as np
 if __package__:
     from .environment import MultiAgentIoTEnv
     from .manager import MATD3Manager
-    from .plots import plot_avg_cumulative_rewards, plot_training_trends, plot_per_agent_training_rewards
+    from .plots import (
+        EvalEpisodeFlow,
+        plot_avg_cumulative_rewards,
+        plot_execution_flow,
+        plot_per_agent_layer_latency,
+        plot_marl_eval_summary,
+        plot_training_execution_strategy,
+        plot_training_trends,
+        plot_per_agent_training_rewards,
+    )
 else:
     PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if PROJECT_ROOT not in sys.path:
         sys.path.insert(0, PROJECT_ROOT)
     from MultiAgentMATD3.environment import MultiAgentIoTEnv
     from MultiAgentMATD3.manager import MATD3Manager
-    from MultiAgentMATD3.plots import plot_avg_cumulative_rewards, plot_training_trends, plot_per_agent_training_rewards
+    from MultiAgentMATD3.plots import (
+        EvalEpisodeFlow,
+        plot_avg_cumulative_rewards,
+        plot_execution_flow,
+        plot_per_agent_layer_latency,
+        plot_marl_eval_summary,
+        plot_training_execution_strategy,
+        plot_training_trends,
+        plot_per_agent_training_rewards,
+    )
 
 
 def print_device_info(resource_manager):
@@ -91,6 +109,7 @@ def train(
     log_every: int = 50,
     log_trace: bool = False,
     trace_max_steps: int = 200,
+    queue_per_device: bool = False,
 ):
     NUM_AGENTS = 3
     NUM_DEVICES = 5
@@ -113,6 +132,7 @@ def train(
         shuffle_allocation_order=True,
         max_exposure_fraction=float(sl),
         max_fail_logs_per_episode=int(max_fail_logs_per_episode),
+        queue_per_device=bool(queue_per_device),
     )
 
     manager = MATD3Manager(
@@ -160,11 +180,25 @@ def train(
         f"  SaveDir: {SAVE_DIR}\n"
         f"  Results: {RESULTS_DIR}\n"
         f"  ShuffleAllocationOrder: {True}\n"
+        f"  QueuePerDevice: {bool(queue_per_device)}\n"
         f"  TerminateOnFail: {TERMINATE_ON_FAIL}\n"
     )
     print_device_info(env.resource_manager)
     model_stats = _model_stats(getattr(env, "tasks", {}) or {}, NUM_AGENTS)
     print(f"MODEL STATS (per agent): {model_stats}\n")
+
+    plots_dir = os.path.join(RESULTS_DIR, "plots")
+    os.makedirs(plots_dir, exist_ok=True)
+
+    per_agent_comp_sum_hist: dict[int, list[float]] = {i: [] for i in range(NUM_AGENTS)}
+    per_agent_comm_sum_hist: dict[int, list[float]] = {i: [] for i in range(NUM_AGENTS)}
+    per_agent_step_count_hist: dict[int, list[int]] = {i: [] for i in range(NUM_AGENTS)}
+    per_agent_device_counts_hist: dict[int, list[Counter[int]]] = {i: [] for i in range(NUM_AGENTS)}
+    latency_traces_by_agent: dict[int, list[list[dict]]] = {i: [] for i in range(NUM_AGENTS)}
+
+    last_success_strategy: dict[str, dict[str, int]] | None = None
+    last_success_ep: int | None = None
+    last_success_flow: EvalEpisodeFlow | None = None
 
     for ep in range(EPISODES):
         obs, _ = env.reset()
@@ -179,6 +213,14 @@ def train(
         ep_fail_reasons: Counter[str] = Counter()
         ep_trace: list[dict] = []
         ep_layer_device_map: dict[str, dict[str, int]] = {str(i): {} for i in range(NUM_AGENTS)}
+        ep_device_counts: dict[int, Counter[int]] = {i: Counter() for i in range(NUM_AGENTS)}
+        ep_t_comp_sum: dict[int, float] = {i: 0.0 for i in range(NUM_AGENTS)}
+        ep_t_comm_sum: dict[int, float] = {i: 0.0 for i in range(NUM_AGENTS)}
+        ep_step_count: dict[int, int] = {i: 0 for i in range(NUM_AGENTS)}
+        ep_flow_device_choices: dict[int, list[int]] = {i: [] for i in range(NUM_AGENTS)}
+        ep_latency_trace: dict[int, list[dict]] = {i: [] for i in range(NUM_AGENTS)}
+        ep_fail_step: int | None = None
+        ep_fail_agent: int | None = None
 
         while not all(done.values()):
             valid_actions = env.get_valid_actions()
@@ -202,6 +244,9 @@ def train(
                         ep_fail_reasons[str(fail.get("reason", "unknown"))] += 1
                     else:
                         ep_fail_reasons["unknown"] += 1
+                    if ep_fail_step is None:
+                        ep_fail_step = int(steps - 1)
+                        ep_fail_agent = int(aid)
 
             for aid in range(NUM_AGENTS):
                 if done.get(aid, False):
@@ -209,9 +254,23 @@ def train(
                 info = infos.get(aid, {}) if isinstance(infos, dict) else {}
                 if not isinstance(info, dict):
                     continue
+                dev = int(actions.get(aid, 0))
+                ep_device_counts[aid][dev] += 1
+                ep_flow_device_choices[aid].append(dev)
+                ep_step_count[aid] += 1
+                if bool(info.get("success", True)) is True:
+                    ep_t_comp_sum[aid] += float(info.get("t_comp", 0.0))
+                    ep_t_comm_sum[aid] += float(info.get("t_comm", 0.0))
                 if bool(info.get("success", True)) is True and aid in layer_idx_before:
                     layer_idx = int(layer_idx_before[aid])
-                    ep_layer_device_map[str(aid)][str(layer_idx)] = int(actions.get(aid, 0))
+                    ep_layer_device_map[str(aid)][str(layer_idx)] = dev
+                    ep_latency_trace[aid].append(
+                        {
+                            "layer": int(layer_idx),
+                            "t_comp": float(info.get("t_comp", 0.0)),
+                            "t_comm": float(info.get("t_comm", 0.0)),
+                        }
+                    )
 
             if log_trace and len(ep_trace) < int(trace_max_steps):
                 for aid in range(NUM_AGENTS):
@@ -267,6 +326,26 @@ def train(
         episode_steps.append(steps)
         episode_success.append(0 if ep_failed else 1)
         fail_reasons_history.append(ep_fail_reasons)
+        for aid in range(NUM_AGENTS):
+            per_agent_comp_sum_hist[aid].append(float(ep_t_comp_sum[aid]))
+            per_agent_comm_sum_hist[aid].append(float(ep_t_comm_sum[aid]))
+            per_agent_step_count_hist[aid].append(int(ep_step_count[aid]))
+            per_agent_device_counts_hist[aid].append(ep_device_counts[aid])
+            if ep_latency_trace[aid]:
+                latency_traces_by_agent[aid].append(ep_latency_trace[aid])
+                if len(latency_traces_by_agent[aid]) > 200:
+                    latency_traces_by_agent[aid] = latency_traces_by_agent[aid][-200:]
+
+        if not ep_failed:
+            last_success_strategy = {a: dict(m) for a, m in ep_layer_device_map.items()}
+            last_success_ep = int(ep)
+            last_success_flow = EvalEpisodeFlow(
+                agent_ids=list(range(NUM_AGENTS)),
+                device_choices=ep_flow_device_choices,
+                fail_step=ep_fail_step,
+                fail_agent=ep_fail_agent,
+                model_types={i: MODEL_TYPES[i] for i in range(NUM_AGENTS)},
+            )
 
         for aid in range(NUM_AGENTS):
             agent_reward_history[aid].append(agent_ep_reward[aid])
@@ -281,12 +360,7 @@ def train(
         eps_history.append(float(eps))
 
         if log_f is not None:
-            device_counts: dict[str, dict[str, int]] = {}
-            if ep_trace:
-                per_agent = {str(a): Counter() for a in range(NUM_AGENTS)}
-                for t in ep_trace:
-                    per_agent[str(int(t.get("agent", 0)))][str(int(t.get("device", 0)))] += 1
-                device_counts = {a: dict(c) for a, c in per_agent.items()}
+            device_counts = {str(a): {str(k): int(v) for k, v in ep_device_counts[a].items()} for a in range(NUM_AGENTS)}
             try:
                 log_f.write(
                     json.dumps(
@@ -297,6 +371,7 @@ def train(
                             "scenario": str(scenario),
                             "models": list(MODEL_TYPES),
                             "model_stats": model_stats,
+                            "queue_per_device": bool(queue_per_device),
                             "team_reward_sum": float(team_return_sum),
                             "team_reward_mean_step": float(team_return_mean / float(finished_steps)),
                             "steps": int(steps),
@@ -357,20 +432,20 @@ def train(
     )
 
     plot_training_trends(
-        out_path=os.path.join(RESULTS_DIR, "training_trends.png"),
+        out_path=os.path.join(plots_dir, "training_trends.png"),
         team_rewards=episode_team_rewards,
         losses=losses,
         eps_history=None,
         window=50,
     )
     plot_avg_cumulative_rewards(
-        out_path=os.path.join(RESULTS_DIR, "avg_cumulative_rewards.png"),
+        out_path=os.path.join(plots_dir, "avg_cumulative_rewards.png"),
         episode_team_reward_sums=episode_team_rewards_sum,
         num_agents=NUM_AGENTS,
         window=50,
     )
     plot_avg_cumulative_rewards(
-        out_path=os.path.join(RESULTS_DIR, "avg_cumulative_rewards_fixed.png"),
+        out_path=os.path.join(plots_dir, "avg_cumulative_rewards_fixed.png"),
         episode_team_reward_sums=episode_team_rewards_sum,
         num_agents=NUM_AGENTS,
         window=50,
@@ -381,17 +456,55 @@ def train(
         **{f"agent_{i}": np.asarray(agent_reward_history[i], dtype=np.float32) for i in range(NUM_AGENTS)},
     )
     plot_per_agent_training_rewards(
-        out_path=os.path.join(RESULTS_DIR, "training_agent_rewards.png"),
+        out_path=os.path.join(plots_dir, "training_agent_rewards.png"),
         agent_reward_history=agent_reward_history,
         model_types={i: MODEL_TYPES[i] for i in range(NUM_AGENTS)},
         window=50,
     )
     plot_per_agent_training_rewards(
-        out_path=os.path.join(RESULTS_DIR, "training_agent_rewards_fixed.png"),
+        out_path=os.path.join(plots_dir, "training_agent_rewards_fixed.png"),
         agent_reward_history=agent_reward_history,
         model_types={i: MODEL_TYPES[i] for i in range(NUM_AGENTS)},
         window=50,
         ylim=(-500, 0),
+    )
+    if last_success_strategy:
+        plot_training_execution_strategy(
+            out_path=os.path.join(plots_dir, "execution_strategy.png"),
+            layer_device_map=last_success_strategy,
+            model_types={i: MODEL_TYPES[i] for i in range(NUM_AGENTS)},
+            num_devices=NUM_DEVICES,
+            title=f"Execution Strategy (episode {last_success_ep})",
+        )
+    if last_success_flow is not None:
+        plot_execution_flow(out_path=os.path.join(plots_dir, "execution_flow.png"), flow=last_success_flow)
+
+    last_k = 100
+    per_agent_summary: dict[int, dict] = {}
+    for aid in range(NUM_AGENTS):
+        succ = float(np.mean(agent_success_history[aid][-last_k:]) * 100.0) if agent_success_history[aid] else 0.0
+        comp_sum = float(np.sum(per_agent_comp_sum_hist[aid][-last_k:])) if per_agent_comp_sum_hist[aid] else 0.0
+        comm_sum = float(np.sum(per_agent_comm_sum_hist[aid][-last_k:])) if per_agent_comm_sum_hist[aid] else 0.0
+        steps_sum = int(np.sum(per_agent_step_count_hist[aid][-last_k:])) if per_agent_step_count_hist[aid] else 0
+        avg_comp = comp_sum / max(1, steps_sum)
+        avg_comm = comm_sum / max(1, steps_sum)
+        dc = Counter()
+        for c in per_agent_device_counts_hist[aid][-last_k:]:
+            dc.update(c)
+        per_agent_summary[aid] = {
+            "success_rate": succ,
+            "avg_t_comp": avg_comp,
+            "avg_t_comm": avg_comm,
+            "device_counts": {str(k): int(v) for k, v in dc.items()},
+            "model_type": MODEL_TYPES[aid],
+        }
+    plot_marl_eval_summary(out_path=os.path.join(plots_dir, "training_marl_summary.png"), per_agent=per_agent_summary)
+    plot_per_agent_layer_latency(
+        out_path=os.path.join(plots_dir, "layer_latency_breakdown.png"),
+        per_agent_traces=latency_traces_by_agent,
+        per_agent_tasks={i: env.tasks.get(i, []) for i in range(NUM_AGENTS)},
+        model_types={i: MODEL_TYPES[i] for i in range(NUM_AGENTS)},
+        title="Average Layer-wise Latency Breakdown (training)",
     )
 
     total_time = time.time() - t0
@@ -402,9 +515,7 @@ def train(
         f"  EnvSteps: {total_env_steps}\n"
         f"  Success: {overall_succ:.1f}% | Fail episodes: {total_fail_episodes}/{EPISODES}\n"
         f"  Models: {base}_actor_agent_*.pt and {base}_critic*_agent_*.pt\n"
-        f"  Plot: {os.path.join(RESULTS_DIR, 'training_trends.png')}\n"
-        f"  Plot: {os.path.join(RESULTS_DIR, 'avg_cumulative_rewards.png')}\n"
-        f"  Plot: {os.path.join(RESULTS_DIR, 'training_agent_rewards.png')}\n"
+        f"  PlotDir: {plots_dir}\n"
         f"  Log: {log_path}\n"
     )
 
@@ -431,6 +542,7 @@ if __name__ == "__main__":
     parser.add_argument("--log-every", type=int, default=50)
     parser.add_argument("--log-trace", action="store_true", help="Include per-step (layer->device) trace in JSONL logs.")
     parser.add_argument("--trace-max-steps", type=int, default=200, help="Max trace entries per episode when --log-trace is set.")
+    parser.add_argument("--queue-per-device", action="store_true", help="Model FIFO queueing on each device within a step.")
     args = parser.parse_args()
 
     for sl in (args.sl or [1.0]):
@@ -443,4 +555,5 @@ if __name__ == "__main__":
             log_every=int(args.log_every),
             log_trace=bool(args.log_trace),
             trace_max_steps=int(args.trace_max_steps),
+            queue_per_device=bool(args.queue_per_device),
         )

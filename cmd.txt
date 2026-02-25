@@ -12,3 +12,10 @@ python MultiAgentMADDPG/train.py --episodes 2000 --seed 42 --sl 1.0 0.5 0.33 --m
 # MATD3 (CTDE) - example
 python MultiAgentMATD3/train.py --episodes 2000 --seed 42 --sl 1.0 0.5 0.33 --models cnn15 miniresnet hugecnn
 python MultiAgentMATD3/train.py --episodes 2000 --seed 42 --sl 1.0 --models cnn15 miniresnet hugecnn --max-fail-logs 2
+
+# To generate execution_strategy.png inside results/*/plots/
+python MultiAgentMADDPG/train.py --episodes 2000 --seed 42 --sl 0.33 --models hugecnn --log-trace
+
+# MADDPG EnergyHard (hard energy constraint per device)
+python -m MultiAgentMADDPG_Energy.train --episodes 2000 --seed 42 --sl 1.0 0.5 0.33 --models cnn15 --energy-min 500 --energy-max 1200
+python -m MultiAgentMADDPG_Energy.train --episodes 2000 --seed 42 --sl 1.0 --models cnn15 miniresnet hugecnn --energy-min 500 --energy-max 1200

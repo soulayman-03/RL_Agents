@@ -1,0 +1,21 @@
+{
+  "algo": "MADDPG",
+  "variant": "EnergyHard",
+  "seed": 42,
+  "episodes": 2000,
+  "sl": 1.0,
+  "models": [
+    "hugcnn",
+    "cnn15",
+    "simplecnn"
+  ],
+  "num_agents": 3,
+  "num_devices": 5,
+  "energy_budget_range": [
+    50.0,
+    120.0
+  ],
+  "alpha_comp": 5.0,
+  "alpha_comm": 5.0,
+  "terminate_on_fail": true
+}

@@ -26,6 +26,7 @@ class MultiAgentIoTEnv(gym.Env):
         seed: int | None = None,
         shuffle_allocation_order: bool = True,
         max_exposure_fraction: float | None = None,
+        queue_per_device: bool = False,
         # Set >0 to print resource_manager.last_allocation_fail for debugging.
         max_fail_logs_per_episode: int = 0,
     ):
@@ -35,6 +36,7 @@ class MultiAgentIoTEnv(gym.Env):
         self.num_devices = num_devices
         self.seed = seed
         self.shuffle_allocation_order = shuffle_allocation_order
+        self.queue_per_device = bool(queue_per_device)
         self.max_fail_logs_per_episode = max(0, int(max_fail_logs_per_episode))
         self._fail_logs_left = self.max_fail_logs_per_episode
         
@@ -196,6 +198,11 @@ class MultiAgentIoTEnv(gym.Env):
 
         # Important: Reset step-level resources at the start of ORCHESTRATED interaction
         self.resource_manager.reset_step_resources()
+        # Optional: model queuing/serialization on each device within a step.
+        # When enabled, multiple agents selecting the same device incur waiting time (FIFO)
+        # based on the allocation processing order for this step.
+        device_comp_queue = {d_id: 0.0 for d_id in range(self.num_devices)}
+        device_comm_queue = {d_id: 0.0 for d_id in range(self.num_devices)}
 
         # 1. Order for processing allocations (Social Fairness)
         # Randomization prevents Agent 0 from always having priority.
@@ -263,22 +270,39 @@ class MultiAgentIoTEnv(gym.Env):
 
             # 3. Latency Calculation
             dev = self.resource_manager.devices[selected_device_id]
-            comp_latency = current_layer.computation_demand / dev.cpu_speed
+            service_comp = current_layer.computation_demand / dev.cpu_speed
+            comp_wait = device_comp_queue[selected_device_id] if self.queue_per_device else 0.0
+            comp_latency = service_comp + comp_wait
             trans_latency = 0.0
+            comm_wait = 0.0
             if prev_dev != -1 and prev_dev != selected_device_id:
                 prev_data = self.tasks[aid][self.agent_progress[aid] - 1].output_data_size if self.agent_progress[aid] > 0 else 5.0
-                trans_latency = prev_data / dev.bandwidth
+                service_comm = prev_data / dev.bandwidth
+                comm_wait = device_comm_queue[selected_device_id] if self.queue_per_device else 0.0
+                trans_latency = service_comm + comm_wait
+                if self.queue_per_device:
+                    device_comm_queue[selected_device_id] += float(service_comm)
             elif prev_dev == -1:
-                trans_latency = 5.0 / dev.bandwidth
+                service_comm = 5.0 / dev.bandwidth
+                comm_wait = device_comm_queue[selected_device_id] if self.queue_per_device else 0.0
+                trans_latency = service_comm + comm_wait
+                if self.queue_per_device:
+                    device_comm_queue[selected_device_id] += float(service_comm)
+
+            if self.queue_per_device:
+                device_comp_queue[selected_device_id] += float(service_comp)
 
             total_latency = comp_latency + trans_latency
             rewards[aid] = -total_latency
-            
+             
             infos[aid] = {
                 't_comp': comp_latency,
                 't_comm': trans_latency,
                 'reward_type': "success",
-                "success": True
+                "success": True,
+                "queue_per_device": bool(self.queue_per_device),
+                "t_comp_wait": float(comp_wait),
+                "t_comm_wait": float(comm_wait),
             }
 
             # Advance agent
