@@ -89,6 +89,11 @@ def plot_avg_cumulative_rewards(
     ax.set_ylabel("Avg cumulative reward")
     ax.grid(True, linestyle="--", alpha=0.4)
     ax.legend()
+    try:
+        # Avoid confusing axis offsets like "-3.33e2" + tiny tick labels.
+        ax.ticklabel_format(style="plain", axis="y", useOffset=False)
+    except Exception:
+        pass
     if ylim is not None:
         y0, y1 = float(ylim[0]), float(ylim[1])
         ax.set_ylim(min(y0, y1), max(y0, y1))
@@ -426,5 +431,94 @@ def plot_per_agent_layer_latency(
         ax.legend()
 
     fig.suptitle(title)
+    fig.savefig(out_path, dpi=160)
+    plt.close(fig)
+
+
+def plot_actor_critic_losses(
+    out_path: str,
+    actor_losses: Sequence[float],
+    critic_losses: Sequence[float],
+    window: int = 200,
+) -> None:
+    """
+    Plot policy (actor) and value (critic) losses (typically per-train-update).
+    """
+    a = np.asarray(list(actor_losses or []), dtype=np.float32)
+    c = np.asarray(list(critic_losses or []), dtype=np.float32)
+    if a.size == 0 and c.size == 0:
+        return
+
+    fig, axes = plt.subplots(2, 1, figsize=(12, 8.5), constrained_layout=True)
+    ax = axes[0]
+    if a.size:
+        ax.plot(a, color="#1f77b4", alpha=0.5, linewidth=1, label="Actor loss (policy)")
+        w = min(max(10, int(window)), max(10, a.size))
+        if a.size >= w:
+            ma = np.convolve(a, np.ones(w) / w, mode="valid")
+            ax.plot(np.arange(w - 1, a.size), ma, color="#1f77b4", linewidth=2, label=f"Moving avg ({w})")
+    ax.set_title("Policy Loss (Actor)")
+    ax.set_xlabel("Train update")
+    ax.set_ylabel("Loss")
+    ax.grid(True, linestyle="--", alpha=0.4)
+    ax.legend()
+
+    ax = axes[1]
+    if c.size:
+        ax.plot(c, color="#ff7f0e", alpha=0.5, linewidth=1, label="Critic loss (value)")
+        w = min(max(10, int(window)), max(10, c.size))
+        if c.size >= w:
+            ma = np.convolve(c, np.ones(w) / w, mode="valid")
+            ax.plot(np.arange(w - 1, c.size), ma, color="#ff7f0e", linewidth=2, label=f"Moving avg ({w})")
+    ax.set_title("Value Loss (Critic)")
+    ax.set_xlabel("Train update")
+    ax.set_ylabel("Loss")
+    ax.grid(True, linestyle="--", alpha=0.4)
+    ax.legend()
+
+    fig.savefig(out_path, dpi=160)
+    plt.close(fig)
+
+
+def plot_per_agent_success_rate(
+    out_path: str,
+    agent_success_history: Dict[int, Sequence[int]],
+    window: int = 50,
+) -> None:
+    """
+    Per-agent success rate trend (moving average over episodes).
+
+    agent_success_history: {agent_id: [0/1 per episode]}
+    """
+    agent_ids = sorted(int(a) for a in agent_success_history.keys())
+    if not agent_ids:
+        return
+
+    fig, ax = plt.subplots(1, 1, figsize=(12, 5.5), constrained_layout=True)
+    colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"]
+
+    for idx, aid in enumerate(agent_ids):
+        s = np.asarray(list(agent_success_history.get(aid, []) or []), dtype=np.float32)
+        if s.size == 0:
+            continue
+        s = np.clip(s, 0.0, 1.0) * 100.0
+        ax.plot(s, color=colors[idx % len(colors)], alpha=0.25, linewidth=1, label=f"Agent {aid} (raw)")
+        if s.size >= window:
+            ma = np.convolve(s, np.ones(window) / window, mode="valid")
+            ax.plot(
+                np.arange(window - 1, s.size),
+                ma,
+                color=colors[idx % len(colors)],
+                linewidth=2,
+                label=f"Agent {aid} (MA{window})",
+            )
+
+    ax.set_title("Success Rate per Agent (moving average)")
+    ax.set_xlabel("Episode")
+    ax.set_ylabel("Success rate (%)")
+    ax.grid(True, linestyle="--", alpha=0.4)
+    ax.set_ylim(0.0, 100.0)
+    ax.legend(ncols=2, fontsize=9)
+
     fig.savefig(out_path, dpi=160)
     plt.close(fig)

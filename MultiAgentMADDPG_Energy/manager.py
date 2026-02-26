@@ -139,7 +139,7 @@ class MADDPGManager:
             next_action_mask=next_action_mask,
         )
 
-    def train(self) -> float | None:
+    def train(self) -> dict[str, float] | None:
         if len(self.buffer) < self.batch_size:
             return None
 
@@ -242,7 +242,9 @@ class MADDPGManager:
 
         c = torch.stack(critic_losses).mean() if len(critic_losses) else torch.tensor(0.0, device=self.device)
         a = torch.stack(actor_losses).mean() if len(actor_losses) else torch.tensor(0.0, device=self.device)
-        return float((c + a).item())
+        critic = float(c.item())
+        actor = float(a.item())
+        return {"critic": critic, "actor": actor, "total": float(actor + critic)}
 
     def save(self, base_path: str) -> None:
         os.makedirs(os.path.dirname(base_path), exist_ok=True)
@@ -262,4 +264,3 @@ class MADDPGManager:
             if os.path.exists(c_path):
                 agent.critic.load_state_dict(torch.load(c_path, map_location=self.device))
                 agent.target_critic.load_state_dict(agent.critic.state_dict())
-

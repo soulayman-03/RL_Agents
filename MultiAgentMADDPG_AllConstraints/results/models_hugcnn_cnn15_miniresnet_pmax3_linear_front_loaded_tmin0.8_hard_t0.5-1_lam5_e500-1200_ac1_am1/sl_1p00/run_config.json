@@ -1,0 +1,31 @@
+{
+  "algorithm": "MADDPG",
+  "variant": "AllConstraints",
+  "episodes": 200,
+  "seed": 42,
+  "sl": 1.0,
+  "num_agents": 3,
+  "num_devices": 5,
+  "models": [
+    "hugcnn",
+    "cnn15",
+    "miniresnet"
+  ],
+  "scenario": "models_hugcnn_cnn15_miniresnet_pmax3_linear_front_loaded_tmin0.8_hard_t0.5-1_lam5_e500-1200_ac1_am1",
+  "queue_per_device": false,
+  "privacy_max_level": 3,
+  "privacy_profile": "linear_front_loaded",
+  "trust_min_for_max_privacy": 0.8,
+  "trust_hard": true,
+  "trust_lambda": 5.0,
+  "trust_score_range": [
+    0.5,
+    1.0
+  ],
+  "energy_budget_range": [
+    500.0,
+    1200.0
+  ],
+  "alpha_comp": 1.0,
+  "alpha_comm": 1.0
+}

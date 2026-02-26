@@ -2,7 +2,7 @@
   "algo": "MADDPG",
   "variant": "EnergyHard",
   "seed": 42,
-  "episodes": 2000,
+  "episodes": 5000,
   "sl": 1.0,
   "models": [
     "cnn15",

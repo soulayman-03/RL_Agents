@@ -1,0 +1,61 @@
+{
+  "episodes": 5000,
+  "seed": 42,
+  "sl": 1.0,
+  "scenario": "models_cnn15_cnn15_cnn15",
+  "models": [
+    "cnn15",
+    "cnn15",
+    "cnn15"
+  ],
+  "variant": "EnergyHard",
+  "overall_success_rate": 100.0,
+  "env_steps": 75000,
+  "fail_episodes": 0,
+  "per_agent_summary": {
+    "0": {
+      "success_rate": 100.0,
+      "avg_t_comp": 0.026502077577081284,
+      "avg_t_comm": 0.005696821095128452,
+      "device_counts": {
+        "1": 119,
+        "0": 696,
+        "4": 656,
+        "3": 16,
+        "2": 13
+      },
+      "model_type": "cnn15"
+    },
+    "1": {
+      "success_rate": 100.0,
+      "avg_t_comp": 0.026556012065383782,
+      "avg_t_comm": 0.005673338722309953,
+      "device_counts": {
+        "1": 115,
+        "4": 696,
+        "0": 650,
+        "2": 24,
+        "3": 15
+      },
+      "model_type": "cnn15"
+    },
+    "2": {
+      "success_rate": 100.0,
+      "avg_t_comp": 0.02653447311829208,
+      "avg_t_comm": 0.005683584183390847,
+      "device_counts": {
+        "1": 112,
+        "0": 671,
+        "4": 687,
+        "2": 19,
+        "3": 11
+      },
+      "model_type": "cnn15"
+    }
+  },
+  "avg_team_reward_sum_last_100": -1.4496946014237961,
+  "avg_team_reward_mean_step_last_100": -0.03221543558719546,
+  "avg_actor_loss_last_1000_updates": 0.2396471447199583,
+  "avg_critic_loss_last_1000_updates": 6.746433208868474e-07,
+  "avg_total_loss_last_1000_updates": 0.23964781936327922
+}

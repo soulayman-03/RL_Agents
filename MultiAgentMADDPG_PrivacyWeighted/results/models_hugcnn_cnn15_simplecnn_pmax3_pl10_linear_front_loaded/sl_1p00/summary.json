@@ -1,0 +1,32 @@
+{
+  "episodes": 500,
+  "seed": 42,
+  "sl": 1.0,
+  "scenario": "models_hugcnn_cnn15_simplecnn_pmax3_pl10_linear_front_loaded",
+  "models": [
+    "hugcnn",
+    "cnn15",
+    "simplecnn"
+  ],
+  "variant": "PrivacyWeighted",
+  "privacy_max_level": 3,
+  "privacy_profile": "linear_front_loaded",
+  "privacy_lambda": 10.0,
+  "overall_success_rate": 100.0,
+  "env_steps": 7495,
+  "fail_episodes": 0,
+  "per_agent_summary": {
+    "0": {
+      "success_rate": 100.0,
+      "avg_trust_shortfall_sum_last_100": 0.24514123299412854
+    },
+    "1": {
+      "success_rate": 100.0,
+      "avg_trust_shortfall_sum_last_100": 0.31092139985809536
+    },
+    "2": {
+      "success_rate": 100.0,
+      "avg_trust_shortfall_sum_last_100": 0.07270277944135524
+    }
+  }
+}

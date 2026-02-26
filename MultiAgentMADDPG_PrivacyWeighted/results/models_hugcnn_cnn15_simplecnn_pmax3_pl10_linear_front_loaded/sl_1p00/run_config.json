@@ -1,0 +1,19 @@
+{
+  "algorithm": "MADDPG",
+  "variant": "PrivacyWeighted",
+  "episodes": 500,
+  "seed": 42,
+  "sl": 1.0,
+  "num_agents": 3,
+  "num_devices": 5,
+  "models": [
+    "hugcnn",
+    "cnn15",
+    "simplecnn"
+  ],
+  "scenario": "models_hugcnn_cnn15_simplecnn_pmax3_pl10_linear_front_loaded",
+  "queue_per_device": false,
+  "privacy_max_level": 3,
+  "privacy_profile": "linear_front_loaded",
+  "privacy_lambda": 10.0
+}

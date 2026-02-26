@@ -1,0 +1,404 @@
+{
+  "models": [
+    "cnn15",
+    "cnn15",
+    "cnn15"
+  ],
+  "model_stats": {
+    "0": {
+      "n_layers": 15.0,
+      "total_compute": 19.5,
+      "total_memory": 60.0,
+      "total_output": 18.0,
+      "max_layer_compute": 1.3,
+      "max_layer_memory": 4.0,
+      "n_private_layers": 1.0
+    },
+    "1": {
+      "n_layers": 15.0,
+      "total_compute": 19.5,
+      "total_memory": 60.0,
+      "total_output": 18.0,
+      "max_layer_compute": 1.3,
+      "max_layer_memory": 4.0,
+      "n_private_layers": 1.0
+    },
+    "2": {
+      "n_layers": 15.0,
+      "total_compute": 19.5,
+      "total_memory": 60.0,
+      "total_output": 18.0,
+      "max_layer_compute": 1.3,
+      "max_layer_memory": 4.0,
+      "n_private_layers": 1.0
+    }
+  },
+  "layer_specs": {
+    "0": [
+      {
+        "idx": 0,
+        "name": "cnn15_L0",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 1
+      },
+      {
+        "idx": 1,
+        "name": "cnn15_L1",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 2,
+        "name": "cnn15_L2",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 3,
+        "name": "cnn15_L3",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 4,
+        "name": "cnn15_L4",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 5,
+        "name": "cnn15_L5",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 6,
+        "name": "cnn15_L6",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 7,
+        "name": "cnn15_L7",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 8,
+        "name": "cnn15_L8",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 9,
+        "name": "cnn15_L9",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 10,
+        "name": "cnn15_L10",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 11,
+        "name": "cnn15_L11",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 12,
+        "name": "cnn15_L12",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 13,
+        "name": "cnn15_L13",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 14,
+        "name": "cnn15_L14",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      }
+    ],
+    "1": [
+      {
+        "idx": 0,
+        "name": "cnn15_L0",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 1
+      },
+      {
+        "idx": 1,
+        "name": "cnn15_L1",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 2,
+        "name": "cnn15_L2",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 3,
+        "name": "cnn15_L3",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 4,
+        "name": "cnn15_L4",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 5,
+        "name": "cnn15_L5",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 6,
+        "name": "cnn15_L6",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 7,
+        "name": "cnn15_L7",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 8,
+        "name": "cnn15_L8",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 9,
+        "name": "cnn15_L9",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 10,
+        "name": "cnn15_L10",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 11,
+        "name": "cnn15_L11",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 12,
+        "name": "cnn15_L12",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 13,
+        "name": "cnn15_L13",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 14,
+        "name": "cnn15_L14",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      }
+    ],
+    "2": [
+      {
+        "idx": 0,
+        "name": "cnn15_L0",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 1
+      },
+      {
+        "idx": 1,
+        "name": "cnn15_L1",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 2,
+        "name": "cnn15_L2",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 3,
+        "name": "cnn15_L3",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 4,
+        "name": "cnn15_L4",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 5,
+        "name": "cnn15_L5",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 6,
+        "name": "cnn15_L6",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 7,
+        "name": "cnn15_L7",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 8,
+        "name": "cnn15_L8",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 9,
+        "name": "cnn15_L9",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 10,
+        "name": "cnn15_L10",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 11,
+        "name": "cnn15_L11",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 12,
+        "name": "cnn15_L12",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 13,
+        "name": "cnn15_L13",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      },
+      {
+        "idx": 14,
+        "name": "cnn15_L14",
+        "compute": 1.3,
+        "memory": 4.0,
+        "output": 1.2,
+        "privacy": 0
+      }
+    ]
+  }
+}

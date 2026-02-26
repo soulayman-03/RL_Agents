@@ -10,9 +10,10 @@ from MultiAgentVDN.plots import (  # noqa: F401
     plot_training_trends,
     plot_avg_cumulative_rewards,
     plot_per_agent_training_rewards,
+    plot_actor_critic_losses,
+    plot_per_agent_success_rate,
     plot_execution_flow,
     plot_training_execution_strategy,
     plot_marl_eval_summary,
     plot_per_agent_layer_latency,
 )
-

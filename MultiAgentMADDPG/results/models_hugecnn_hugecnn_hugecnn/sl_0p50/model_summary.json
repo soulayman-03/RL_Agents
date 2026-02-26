@@ -1,0 +1,284 @@
+{
+  "models": [
+    "hugecnn",
+    "hugecnn",
+    "hugecnn"
+  ],
+  "model_stats": {
+    "0": {
+      "n_layers": 10.0,
+      "total_compute": 262.8,
+      "total_memory": 2174.0,
+      "total_output": 113.91,
+      "max_layer_compute": 55.0,
+      "max_layer_memory": 520.0,
+      "n_private_layers": 1.0
+    },
+    "1": {
+      "n_layers": 10.0,
+      "total_compute": 262.8,
+      "total_memory": 2174.0,
+      "total_output": 113.91,
+      "max_layer_compute": 55.0,
+      "max_layer_memory": 520.0,
+      "n_private_layers": 1.0
+    },
+    "2": {
+      "n_layers": 10.0,
+      "total_compute": 262.8,
+      "total_memory": 2174.0,
+      "total_output": 113.91,
+      "max_layer_compute": 55.0,
+      "max_layer_memory": 520.0,
+      "n_private_layers": 1.0
+    }
+  },
+  "layer_specs": {
+    "0": [
+      {
+        "idx": 0,
+        "name": "hugecnn_L0",
+        "compute": 35.0,
+        "memory": 130.0,
+        "output": 45.0,
+        "privacy": 1
+      },
+      {
+        "idx": 1,
+        "name": "hugecnn_L1",
+        "compute": 55.0,
+        "memory": 240.0,
+        "output": 28.0,
+        "privacy": 0
+      },
+      {
+        "idx": 2,
+        "name": "hugecnn_L2",
+        "compute": 45.0,
+        "memory": 260.0,
+        "output": 18.0,
+        "privacy": 0
+      },
+      {
+        "idx": 3,
+        "name": "hugecnn_L3",
+        "compute": 30.0,
+        "memory": 220.0,
+        "output": 18.0,
+        "privacy": 0
+      },
+      {
+        "idx": 4,
+        "name": "hugecnn_L4",
+        "compute": 1.0,
+        "memory": 1.0,
+        "output": 1.0,
+        "privacy": 0
+      },
+      {
+        "idx": 5,
+        "name": "hugecnn_L5",
+        "compute": 40.0,
+        "memory": 520.0,
+        "output": 2.0,
+        "privacy": 0
+      },
+      {
+        "idx": 6,
+        "name": "hugecnn_L6",
+        "compute": 26.0,
+        "memory": 360.0,
+        "output": 1.0,
+        "privacy": 0
+      },
+      {
+        "idx": 7,
+        "name": "hugecnn_L7",
+        "compute": 18.0,
+        "memory": 260.0,
+        "output": 0.6,
+        "privacy": 0
+      },
+      {
+        "idx": 8,
+        "name": "hugecnn_L8",
+        "compute": 12.0,
+        "memory": 180.0,
+        "output": 0.3,
+        "privacy": 0
+      },
+      {
+        "idx": 9,
+        "name": "hugecnn_L9",
+        "compute": 0.8,
+        "memory": 3.0,
+        "output": 0.01,
+        "privacy": 0
+      }
+    ],
+    "1": [
+      {
+        "idx": 0,
+        "name": "hugecnn_L0",
+        "compute": 35.0,
+        "memory": 130.0,
+        "output": 45.0,
+        "privacy": 1
+      },
+      {
+        "idx": 1,
+        "name": "hugecnn_L1",
+        "compute": 55.0,
+        "memory": 240.0,
+        "output": 28.0,
+        "privacy": 0
+      },
+      {
+        "idx": 2,
+        "name": "hugecnn_L2",
+        "compute": 45.0,
+        "memory": 260.0,
+        "output": 18.0,
+        "privacy": 0
+      },
+      {
+        "idx": 3,
+        "name": "hugecnn_L3",
+        "compute": 30.0,
+        "memory": 220.0,
+        "output": 18.0,
+        "privacy": 0
+      },
+      {
+        "idx": 4,
+        "name": "hugecnn_L4",
+        "compute": 1.0,
+        "memory": 1.0,
+        "output": 1.0,
+        "privacy": 0
+      },
+      {
+        "idx": 5,
+        "name": "hugecnn_L5",
+        "compute": 40.0,
+        "memory": 520.0,
+        "output": 2.0,
+        "privacy": 0
+      },
+      {
+        "idx": 6,
+        "name": "hugecnn_L6",
+        "compute": 26.0,
+        "memory": 360.0,
+        "output": 1.0,
+        "privacy": 0
+      },
+      {
+        "idx": 7,
+        "name": "hugecnn_L7",
+        "compute": 18.0,
+        "memory": 260.0,
+        "output": 0.6,
+        "privacy": 0
+      },
+      {
+        "idx": 8,
+        "name": "hugecnn_L8",
+        "compute": 12.0,
+        "memory": 180.0,
+        "output": 0.3,
+        "privacy": 0
+      },
+      {
+        "idx": 9,
+        "name": "hugecnn_L9",
+        "compute": 0.8,
+        "memory": 3.0,
+        "output": 0.01,
+        "privacy": 0
+      }
+    ],
+    "2": [
+      {
+        "idx": 0,
+        "name": "hugecnn_L0",
+        "compute": 35.0,
+        "memory": 130.0,
+        "output": 45.0,
+        "privacy": 1
+      },
+      {
+        "idx": 1,
+        "name": "hugecnn_L1",
+        "compute": 55.0,
+        "memory": 240.0,
+        "output": 28.0,
+        "privacy": 0
+      },
+      {
+        "idx": 2,
+        "name": "hugecnn_L2",
+        "compute": 45.0,
+        "memory": 260.0,
+        "output": 18.0,
+        "privacy": 0
+      },
+      {
+        "idx": 3,
+        "name": "hugecnn_L3",
+        "compute": 30.0,
+        "memory": 220.0,
+        "output": 18.0,
+        "privacy": 0
+      },
+      {
+        "idx": 4,
+        "name": "hugecnn_L4",
+        "compute": 1.0,
+        "memory": 1.0,
+        "output": 1.0,
+        "privacy": 0
+      },
+      {
+        "idx": 5,
+        "name": "hugecnn_L5",
+        "compute": 40.0,
+        "memory": 520.0,
+        "output": 2.0,
+        "privacy": 0
+      },
+      {
+        "idx": 6,
+        "name": "hugecnn_L6",
+        "compute": 26.0,
+        "memory": 360.0,
+        "output": 1.0,
+        "privacy": 0
+      },
+      {
+        "idx": 7,
+        "name": "hugecnn_L7",
+        "compute": 18.0,
+        "memory": 260.0,
+        "output": 0.6,
+        "privacy": 0
+      },
+      {
+        "idx": 8,
+        "name": "hugecnn_L8",
+        "compute": 12.0,
+        "memory": 180.0,
+        "output": 0.3,
+        "privacy": 0
+      },
+      {
+        "idx": 9,
+        "name": "hugecnn_L9",
+        "compute": 0.8,
+        "memory": 3.0,
+        "output": 0.01,
+        "privacy": 0
+      }
+    ]
+  }
+}

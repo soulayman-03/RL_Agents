@@ -1,0 +1,60 @@
+{
+  "episodes": 5000,
+  "seed": 42,
+  "sl": 0.5,
+  "scenario": "models_cnn15_cnn15_cnn15",
+  "models": [
+    "cnn15",
+    "cnn15",
+    "cnn15"
+  ],
+  "overall_success_rate": 100.0,
+  "env_steps": 75000,
+  "fail_episodes": 0,
+  "per_agent_summary": {
+    "0": {
+      "success_rate": 100.0,
+      "avg_t_comp": 0.026502077577081284,
+      "avg_t_comm": 0.005696821095128452,
+      "device_counts": {
+        "1": 119,
+        "0": 696,
+        "4": 656,
+        "3": 16,
+        "2": 13
+      },
+      "model_type": "cnn15"
+    },
+    "1": {
+      "success_rate": 100.0,
+      "avg_t_comp": 0.02648497481042331,
+      "avg_t_comm": 0.005734665098911377,
+      "device_counts": {
+        "1": 113,
+        "0": 698,
+        "4": 650,
+        "3": 20,
+        "2": 19
+      },
+      "model_type": "cnn15"
+    },
+    "2": {
+      "success_rate": 100.0,
+      "avg_t_comp": 0.026498641616868605,
+      "avg_t_comm": 0.005713023327079689,
+      "device_counts": {
+        "1": 114,
+        "0": 698,
+        "4": 659,
+        "2": 9,
+        "3": 20
+      },
+      "model_type": "cnn15"
+    }
+  },
+  "avg_team_reward_sum_last_100": -1.449453052882391,
+  "avg_team_reward_mean_step_last_100": -0.032210067841830906,
+  "avg_actor_loss_last_1000_updates": 0.2396758163124323,
+  "avg_critic_loss_last_1000_updates": 4.3155779909032076e-07,
+  "avg_total_loss_last_1000_updates": 0.23967624787023134
+}

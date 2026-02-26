@@ -1,0 +1,34 @@
+{
+  "devices": {
+    "0": {
+      "cpu_speed": 51.39426798457884,
+      "memory_capacity": 817.5075286558668,
+      "bandwidth": 205.00586367382385,
+      "privacy_clearance": 3
+    },
+    "1": {
+      "cpu_speed": 46.39537928525144,
+      "memory_capacity": 871.7466233200553,
+      "bandwidth": 298.13354893353517,
+      "privacy_clearance": 3
+    },
+    "2": {
+      "cpu_speed": 50.9049251244904,
+      "memory_capacity": 822.2478756372485,
+      "bandwidth": 168.73904797231847,
+      "privacy_clearance": 2
+    },
+    "3": {
+      "cpu_speed": 50.053552881033625,
+      "memory_capacity": 818.5751787787045,
+      "bandwidth": 189.7675301373297,
+      "privacy_clearance": 1
+    },
+    "4": {
+      "cpu_speed": 47.204406220406966,
+      "memory_capacity": 1212.485978713136,
+      "bandwidth": 311.8860913355653,
+      "privacy_clearance": 1
+    }
+  }
+}

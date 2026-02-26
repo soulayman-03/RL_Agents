@@ -1,0 +1,16 @@
+{
+  "algorithm": "MADDPG",
+  "episodes": 5000,
+  "seed": 42,
+  "sl": 0.5,
+  "num_agents": 3,
+  "num_devices": 5,
+  "models": [
+    "hugecnn",
+    "hugecnn",
+    "hugecnn"
+  ],
+  "scenario": "models_hugecnn_hugecnn_hugecnn",
+  "queue_per_device": false,
+  "terminate_on_fail": true
+}

@@ -18,9 +18,11 @@ if __package__:
     from .plots import (
         EvalEpisodeFlow,
         plot_avg_cumulative_rewards,
+        plot_actor_critic_losses,
         plot_execution_flow,
         plot_marl_eval_summary,
         plot_per_agent_layer_latency,
+        plot_per_agent_success_rate,
         plot_per_agent_training_rewards,
         plot_training_execution_strategy,
         plot_training_trends,
@@ -34,9 +36,11 @@ else:
     from MultiAgentMADDPG_Energy.plots import (
         EvalEpisodeFlow,
         plot_avg_cumulative_rewards,
+        plot_actor_critic_losses,
         plot_execution_flow,
         plot_marl_eval_summary,
         plot_per_agent_layer_latency,
+        plot_per_agent_success_rate,
         plot_per_agent_training_rewards,
         plot_training_execution_strategy,
         plot_training_trends,
@@ -107,6 +111,18 @@ def _layer_specs(tasks: dict[int, list[object]], num_agents: int) -> dict[str, l
             )
         out[str(aid)] = specs
     return out
+
+
+def _device_summary(resource_manager) -> dict[str, dict[str, float | int]]:
+    devices = {}
+    for d_id, d in getattr(resource_manager, "devices", {}).items():
+        devices[str(int(d_id))] = {
+            "cpu_speed": float(getattr(d, "cpu_speed", 0.0)),
+            "memory_capacity": float(getattr(d, "memory_capacity", 0.0)),
+            "bandwidth": float(getattr(d, "bandwidth", 0.0)),
+            "privacy_clearance": int(getattr(d, "privacy_clearance", 0)),
+        }
+    return devices
 
 
 def _fmt_seconds(sec: float) -> str:
@@ -194,6 +210,8 @@ def train(
     episode_team_rewards: list[float] = []
     episode_team_rewards_sum: list[float] = []
     losses: list[float] = []
+    actor_losses: list[float] = []
+    critic_losses: list[float] = []
     eps_history: list[float] = []
     episode_steps: list[int] = []
     episode_success: list[int] = []
@@ -220,6 +238,26 @@ def train(
 
     model_stats = _model_stats(getattr(env, "tasks", {}) or {}, NUM_AGENTS)
     layer_specs = _layer_specs(getattr(env, "tasks", {}) or {}, NUM_AGENTS)
+    device_specs = _device_summary(env.resource_manager)
+    try:
+        with open(os.path.join(RESULTS_DIR, "model_summary.json"), "w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "models": list(MODEL_TYPES),
+                    "model_stats": model_stats,
+                    "layer_specs": layer_specs,
+                },
+                f,
+                indent=2,
+                ensure_ascii=False,
+            )
+    except Exception:
+        pass
+    try:
+        with open(os.path.join(RESULTS_DIR, "device_summary.json"), "w", encoding="utf-8") as f:
+            json.dump({"devices": device_specs}, f, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
     print(
         "MADDPG Training (CTDE) - EnergyHard\n"
         f"  Agents: {NUM_AGENTS} | Devices: {NUM_DEVICES} | Episodes: {EPISODES}\n"
@@ -261,6 +299,8 @@ def train(
         ep_latency_trace: dict[int, list[dict]] = {i: [] for i in range(NUM_AGENTS)}
         ep_fail_step: int | None = None
         ep_fail_agent: int | None = None
+        ep_actor_loss_updates: list[float] = []
+        ep_critic_loss_updates: list[float] = []
 
         while not all(done.values()):
             valid_actions = env.get_valid_actions()
@@ -351,7 +391,11 @@ def train(
             )
             loss = manager.train()
             if loss is not None:
-                losses.append(float(loss))
+                losses.append(float(loss.get("total", 0.0)))
+                actor_losses.append(float(loss.get("actor", 0.0)))
+                critic_losses.append(float(loss.get("critic", 0.0)))
+                ep_actor_loss_updates.append(float(loss.get("actor", 0.0)))
+                ep_critic_loss_updates.append(float(loss.get("critic", 0.0)))
 
             team_r = float(sum(rewards.values())) / float(NUM_AGENTS)
             team_return_mean += team_r
@@ -380,6 +424,8 @@ def train(
 
         eps_now = float(manager.agents[0].eps.epsilon) if 0 in manager.agents else float("nan")
         eps_history.append(eps_now)
+        ep_actor_loss_mean = float(np.mean(ep_actor_loss_updates)) if ep_actor_loss_updates else None
+        ep_critic_loss_mean = float(np.mean(ep_critic_loss_updates)) if ep_critic_loss_updates else None
 
         if not ep_failed:
             last_success_strategy = ep_layer_device_map
@@ -431,6 +477,8 @@ def train(
                             "fail_reasons": dict(ep_fail_reasons),
                             "per_agent_reward_sum": {str(a): float(agent_ep_reward[a]) for a in range(NUM_AGENTS)},
                             "per_agent_failed": {str(a): bool(agent_failed[a]) for a in range(NUM_AGENTS)},
+                            "actor_loss": ep_actor_loss_mean,
+                            "critic_loss": ep_critic_loss_mean,
                             "device_counts": device_counts,
                             "layer_device_map": ep_layer_device_map,
                             "device_energy_init": device_energy_init,
@@ -482,6 +530,8 @@ def train(
     np.save(os.path.join(RESULTS_DIR, "team_reward_history.npy"), np.asarray(episode_team_rewards, dtype=np.float32))
     np.save(os.path.join(RESULTS_DIR, "team_reward_sum_history.npy"), np.asarray(episode_team_rewards_sum, dtype=np.float32))
     np.save(os.path.join(RESULTS_DIR, "loss_history.npy"), np.asarray(losses, dtype=np.float32))
+    np.save(os.path.join(RESULTS_DIR, "actor_loss_history.npy"), np.asarray(actor_losses, dtype=np.float32))
+    np.save(os.path.join(RESULTS_DIR, "critic_loss_history.npy"), np.asarray(critic_losses, dtype=np.float32))
     np.save(os.path.join(RESULTS_DIR, "epsilon_history.npy"), np.asarray(eps_history, dtype=np.float32))
     np.save(os.path.join(RESULTS_DIR, "episode_steps.npy"), np.asarray(episode_steps, dtype=np.int32))
     np.save(os.path.join(RESULTS_DIR, "episode_success.npy"), np.asarray(episode_success, dtype=np.int32))
@@ -501,6 +551,12 @@ def train(
         eps_history=None,
         window=50,
     )
+    plot_actor_critic_losses(
+        out_path=os.path.join(plots_dir, "policy_value_losses.png"),
+        actor_losses=actor_losses,
+        critic_losses=critic_losses,
+        window=200,
+    )
     plot_avg_cumulative_rewards(
         out_path=os.path.join(plots_dir, "avg_cumulative_rewards.png"),
         episode_team_reward_sums=episode_team_rewards_sum,
@@ -512,6 +568,11 @@ def train(
         out_path=os.path.join(plots_dir, "training_agent_rewards.png"),
         agent_reward_history=agent_reward_history,
         model_types={i: MODEL_TYPES[i] for i in range(NUM_AGENTS)},
+        window=50,
+    )
+    plot_per_agent_success_rate(
+        out_path=os.path.join(plots_dir, "training_agent_success_rate.png"),
+        agent_success_history=agent_success_history,
         window=50,
     )
     plot_per_agent_training_rewards(
@@ -562,6 +623,29 @@ def train(
 
     total_time = time.time() - t0
     overall_succ = float(np.mean(episode_success) * 100.0) if len(episode_success) else 0.0
+    try:
+        last_k_eps = 100
+        summary = {
+            "episodes": int(EPISODES),
+            "seed": int(seed),
+            "sl": float(sl),
+            "scenario": str(scenario),
+            "models": list(MODEL_TYPES),
+            "variant": "EnergyHard",
+            "overall_success_rate": float(overall_succ),
+            "env_steps": int(total_env_steps),
+            "fail_episodes": int(total_fail_episodes),
+            "per_agent_summary": {str(k): v for k, v in per_agent_summary.items()},
+            "avg_team_reward_sum_last_100": float(np.mean(episode_team_rewards_sum[-last_k_eps:])) if episode_team_rewards_sum else None,
+            "avg_team_reward_mean_step_last_100": float(np.mean(episode_team_rewards[-last_k_eps:])) if episode_team_rewards else None,
+            "avg_actor_loss_last_1000_updates": float(np.mean(actor_losses[-1000:])) if actor_losses else None,
+            "avg_critic_loss_last_1000_updates": float(np.mean(critic_losses[-1000:])) if critic_losses else None,
+            "avg_total_loss_last_1000_updates": float(np.mean(losses[-1000:])) if losses else None,
+        }
+        with open(os.path.join(RESULTS_DIR, "summary.json"), "w", encoding="utf-8") as f:
+            json.dump(summary, f, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
     print(
         "Training finished\n"
         f"  Time: {_fmt_seconds(total_time)}\n"

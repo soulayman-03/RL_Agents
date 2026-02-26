@@ -80,6 +80,34 @@ def plot_execution_strategy(trace, results_dir, num_devices=5, out_name="executi
     plt.close()
 
 
+def _device_summary(resource_manager) -> dict[str, dict[str, float | int]]:
+    devices = {}
+    for d_id, d in getattr(resource_manager, "devices", {}).items():
+        devices[str(int(d_id))] = {
+            "cpu_speed": float(getattr(d, "cpu_speed", 0.0)),
+            "memory_capacity": float(getattr(d, "memory_capacity", 0.0)),
+            "bandwidth": float(getattr(d, "bandwidth", 0.0)),
+            "privacy_clearance": int(getattr(d, "privacy_clearance", 0)),
+        }
+    return devices
+
+
+def _layer_specs(task: list[object]) -> list[dict[str, float | int | str]]:
+    specs: list[dict[str, float | int | str]] = []
+    for idx, l in enumerate(list(task or [])):
+        specs.append(
+            {
+                "idx": int(idx),
+                "name": str(getattr(l, "name", f"layer_{idx}")),
+                "compute": float(getattr(l, "computation_demand", 0.0)),
+                "memory": float(getattr(l, "memory_demand", 0.0)),
+                "output": float(getattr(l, "output_data_size", 0.0)),
+                "privacy": int(getattr(l, "privacy_level", 0)),
+            }
+        )
+    return specs
+
+
 def _sl_tag(max_exposure_fraction: float) -> str:
     return f"sl_{float(max_exposure_fraction):.2f}".replace(".", "p")
 
@@ -159,7 +187,9 @@ def train_single_agent(
     history_rewards = []
     history_stalls = []
     history_epsilons = []
+    history_success = []
     final_successful_trace = []
+    successful_latency_traces: list[list[dict]] = []
 
     RUN_ROOT, TRAIN_DIR = _make_run_dirs(
         algorithm="DQN",
@@ -185,6 +215,26 @@ def train_single_agent(
                 ensure_ascii=False,
                 indent=2,
             )
+    except Exception:
+        pass
+
+    try:
+        with open(os.path.join(RUN_ROOT, "model_summary.json"), "w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "model_type": str(MODEL_TYPES[0]),
+                    "layer_specs": _layer_specs(getattr(env, "task", []) or []),
+                },
+                f,
+                indent=2,
+                ensure_ascii=False,
+            )
+    except Exception:
+        pass
+
+    try:
+        with open(os.path.join(RUN_ROOT, "device_summary.json"), "w", encoding="utf-8") as f:
+            json.dump({"devices": _device_summary(env.resource_manager)}, f, indent=2, ensure_ascii=False)
     except Exception:
         pass
 
@@ -245,6 +295,9 @@ def train_single_agent(
             
         if stalls == 0 and done and episode_trace:
             final_successful_trace = episode_trace
+            successful_latency_traces.append(episode_trace)
+            if len(successful_latency_traces) > 200:
+                successful_latency_traces = successful_latency_traces[-200:]
 
         # Replay at end of episode for faster training
         for _ in range(5):
@@ -253,6 +306,7 @@ def train_single_agent(
         history_rewards.append(episode_reward)
         history_stalls.append(stalls)
         history_epsilons.append(float(agent.epsilon))
+        history_success.append(1 if (stalls == 0 and done) else 0)
 
         if log_f is not None:
             try:
@@ -264,6 +318,7 @@ def train_single_agent(
                             "stalls": int(stalls),
                             "epsilon": float(agent.epsilon),
                             "max_exposure_fraction": float(max_exposure_fraction),
+                            "success": bool(stalls == 0 and done),
                             "devices": [int(t["device"]) for t in episode_trace],
                             "trace": episode_trace,
                         },
@@ -326,7 +381,25 @@ def train_single_agent(
         os.path.join(TRAIN_DIR, "dqn_epsilon.png"),
         window=200,
     )
+    plot_training_scalar(
+        [float(s) * 100.0 for s in history_success],
+        "Success Rate (%) - DQN",
+        "Success (%)",
+        os.path.join(TRAIN_DIR, "dqn_success_rate.png"),
+        window=50,
+    )
     plot_execution_strategy(final_successful_trace, TRAIN_DIR, num_devices=NUM_DEVICES, out_name="execution_strategy.png")
+    try:
+        from MultiAgentVDN.plots import plot_layer_latency
+
+        plot_layer_latency(
+            out_path=os.path.join(TRAIN_DIR, "layer_latency_breakdown.png"),
+            all_episode_traces=successful_latency_traces,
+            task=list(getattr(env, "task", []) or []),
+            title="Average Layer-wise Latency Breakdown (successful episodes)",
+        )
+    except Exception:
+        pass
 
     if log_f is not None:
         try:
@@ -338,6 +411,7 @@ def train_single_agent(
         last_k = 100
         avg_reward_last = float(np.mean(history_rewards[-last_k:])) if history_rewards else 0.0
         avg_stalls_last = float(np.mean(history_stalls[-last_k:])) if history_stalls else 0.0
+        succ_last = float(np.mean(history_success[-last_k:]) * 100.0) if history_success else 0.0
         summary_path = os.path.join(RUN_ROOT, "summary.json")
         with open(summary_path, "w", encoding="utf-8") as f:
             json.dump(
@@ -348,6 +422,7 @@ def train_single_agent(
                     "max_exposure_fraction": float(max_exposure_fraction),
                     "avg_reward_last_100": avg_reward_last,
                     "avg_stalls_last_100": avg_stalls_last,
+                    "success_rate_last_100": succ_last,
                     "best_reward": float(np.max(history_rewards)) if history_rewards else None,
                     "worst_reward": float(np.min(history_rewards)) if history_rewards else None,
                 },

@@ -1,0 +1,16 @@
+{
+  "algorithm": "MADDPG",
+  "episodes": 5000,
+  "seed": 42,
+  "sl": 0.5,
+  "num_agents": 3,
+  "num_devices": 5,
+  "models": [
+    "cnn15",
+    "miniresnet",
+    "hugecnn"
+  ],
+  "scenario": "models_cnn15_miniresnet_hugecnn",
+  "queue_per_device": false,
+  "terminate_on_fail": true
+}
