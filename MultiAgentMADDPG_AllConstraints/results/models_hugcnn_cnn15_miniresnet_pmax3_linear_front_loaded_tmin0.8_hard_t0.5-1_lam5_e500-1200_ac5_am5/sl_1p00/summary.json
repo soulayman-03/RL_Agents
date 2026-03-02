@@ -1,20 +1,20 @@
 {
-  "episodes": 200,
+  "episodes": 5000,
   "seed": 42,
   "sl": 1.0,
-  "scenario": "models_hugcnn_cnn15_miniresnet_pmax3_linear_front_loaded_tmin0.8_hard_t0.5-1_lam5_e500-1200_ac1_am1",
+  "scenario": "models_hugcnn_cnn15_miniresnet_pmax3_linear_front_loaded_tmin0.8_hard_t0.5-1_lam5_e500-1200_ac5_am5",
   "models": [
     "hugcnn",
     "cnn15",
     "miniresnet"
   ],
   "variant": "AllConstraints",
-  "overall_success_rate": 99.0,
-  "env_steps": 3000,
-  "fail_episodes": 2,
+  "overall_success_rate": 80.80000000000001,
+  "env_steps": 71870,
+  "fail_episodes": 960,
   "per_agent_summary": {
     "0": {
-      "success_rate": 100.0,
+      "success_rate": 97.0,
       "avg_trust_shortfall_sum_last_100": 0.0,
       "model_type": "hugcnn"
     },
@@ -24,7 +24,7 @@
       "model_type": "cnn15"
     },
     "2": {
-      "success_rate": 100.0,
+      "success_rate": 99.0,
       "avg_trust_shortfall_sum_last_100": 0.0,
       "model_type": "miniresnet"
     }

@@ -1,7 +1,7 @@
 {
   "algorithm": "MADDPG",
   "variant": "AllConstraints",
-  "episodes": 200,
+  "episodes": 5000,
   "seed": 42,
   "sl": 1.0,
   "num_agents": 3,
@@ -11,7 +11,7 @@
     "cnn15",
     "miniresnet"
   ],
-  "scenario": "models_hugcnn_cnn15_miniresnet_pmax3_linear_front_loaded_tmin0.8_hard_t0.5-1_lam5_e500-1200_ac1_am1",
+  "scenario": "models_hugcnn_cnn15_miniresnet_pmax3_linear_front_loaded_tmin0.8_hard_t0.5-1_lam5_e500-1200_ac5_am5",
   "queue_per_device": false,
   "privacy_max_level": 3,
   "privacy_profile": "linear_front_loaded",
@@ -26,6 +26,6 @@
     500.0,
     1200.0
   ],
-  "alpha_comp": 1.0,
-  "alpha_comm": 1.0
+  "alpha_comp": 5.0,
+  "alpha_comm": 5.0
 }

@@ -1,46 +1,77 @@
-from __future__ import annotations
-
-import argparse
-import json
 import os
 import sys
 import time
+import argparse
+import json
 from collections import Counter
 
 import numpy as np
 
-from MultiAgentMADDPG.manager import MADDPGManager
-from MultiAgentMADDPG.plots import (
-    EvalEpisodeFlow,
-    plot_actor_critic_losses,
-    plot_avg_cumulative_rewards,
-    plot_execution_flow,
-    plot_marl_eval_summary,
-    plot_per_agent_layer_latency,
-    plot_per_agent_success_rate,
-    plot_per_agent_training_rewards,
-    plot_training_execution_strategy,
-    plot_training_trends,
-)
-
 # Allow running both:
-# - as a module:  python -m MultiAgentMADDPG_AllConstraints.train
-# - as a script:  python MultiAgentMADDPG_AllConstraints/train.py
+# - as a module:  python -m MultiAgentMATD3_AllConstraints.train
+# - as a script:  python MultiAgentMATD3_AllConstraints/train.py
 if __package__:
     from .environment import MultiAgentIoTEnvAllConstraints
+    from .manager import MATD3Manager
+    from .plots import (
+        EvalEpisodeFlow,
+        plot_avg_cumulative_rewards,
+        plot_execution_flow,
+        plot_per_agent_layer_latency,
+        plot_marl_eval_summary,
+        plot_training_execution_strategy,
+        plot_training_trends,
+        plot_per_agent_training_rewards,
+    )
 else:
     PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if PROJECT_ROOT not in sys.path:
         sys.path.insert(0, PROJECT_ROOT)
-    from MultiAgentMADDPG_AllConstraints.environment import MultiAgentIoTEnvAllConstraints
+    from MultiAgentMATD3_AllConstraints.environment import MultiAgentIoTEnvAllConstraints
+    from MultiAgentMATD3_AllConstraints.manager import MATD3Manager
+    from MultiAgentMATD3_AllConstraints.plots import (
+        EvalEpisodeFlow,
+        plot_avg_cumulative_rewards,
+        plot_execution_flow,
+        plot_per_agent_layer_latency,
+        plot_marl_eval_summary,
+        plot_training_execution_strategy,
+        plot_training_trends,
+        plot_per_agent_training_rewards,
+    )
 
 
-def _fmt_seconds(sec: float) -> str:
-    sec = max(0.0, float(sec))
-    h = int(sec // 3600)
-    m = int((sec % 3600) // 60)
-    s = int(sec % 60)
-    return f"{h:02d}:{m:02d}:{s:02d}"
+def print_device_info(resource_manager):
+    print("\n" + "=" * 50)
+    print("DEVICE SPECIFICATIONS")
+    print("=" * 50)
+    devices = getattr(resource_manager, "devices", {})
+    for d_id, d in devices.items():
+        print(
+            f"Device {d_id}: CPU={getattr(d, 'cpu_speed', 0):.2f}, RAM={getattr(d, 'memory_capacity', 0):.1f}MB, "
+            f"BW={getattr(d, 'bandwidth', 0):.1f}Mbps, Privacy={getattr(d, 'privacy_clearance', 0)}"
+        )
+    print("=" * 50 + "\n")
+
+
+def _model_stats(tasks: dict[int, list[object]], num_agents: int) -> dict[str, dict[str, float]]:
+    stats: dict[str, dict[str, float]] = {}
+    for aid in range(int(num_agents)):
+        layers = list(tasks.get(aid, []) or [])
+        comp = [float(getattr(l, "computation_demand", 0.0)) for l in layers]
+        mem = [float(getattr(l, "memory_demand", 0.0)) for l in layers]
+        out = [float(getattr(l, "output_data_size", 0.0)) for l in layers]
+        priv = [int(getattr(l, "privacy_level", 0)) for l in layers]
+        stats[str(aid)] = {
+            "n_layers": float(len(layers)),
+            "total_compute": float(sum(comp)),
+            "total_memory": float(sum(mem)),
+            "total_output": float(sum(out)),
+            "max_layer_compute": float(max(comp)) if comp else 0.0,
+            "max_layer_memory": float(max(mem)) if mem else 0.0,
+            "n_private_layers": float(sum(1 for p in priv if int(p) > 0)),
+        }
+    return stats
 
 
 def _sl_tag(v: float) -> str:
@@ -63,40 +94,6 @@ def _normalize_model_types(model_types: list[str] | None, num_agents: int) -> li
     if len(mt) != num_agents:
         raise ValueError(f"--models must be length 1 or {num_agents}, got {len(mt)}")
     return mt
-
-
-def _layer_specs(tasks: dict[int, list[object]], num_agents: int) -> dict[str, list[dict[str, float | int | str]]]:
-    out: dict[str, list[dict[str, float | int | str]]] = {}
-    for aid in range(int(num_agents)):
-        layers = list(tasks.get(aid, []) or [])
-        specs: list[dict[str, float | int | str]] = []
-        for idx, l in enumerate(layers):
-            specs.append(
-                {
-                    "idx": int(idx),
-                    "name": str(getattr(l, "name", f"layer_{idx}")),
-                    "compute": float(getattr(l, "computation_demand", 0.0)),
-                    "memory": float(getattr(l, "memory_demand", 0.0)),
-                    "output": float(getattr(l, "output_data_size", 0.0)),
-                    "privacy": int(getattr(l, "privacy_level", 0)),
-                }
-            )
-        out[str(aid)] = specs
-    return out
-
-
-def _device_summary(env: MultiAgentIoTEnvAllConstraints) -> dict[str, dict[str, float | int]]:
-    devices = {}
-    for d_id, d in getattr(env.resource_manager, "devices", {}).items():
-        devices[str(int(d_id))] = {
-            "cpu_speed": float(getattr(d, "cpu_speed", 0.0)),
-            "memory_capacity": float(getattr(d, "memory_capacity", 0.0)),
-            "bandwidth": float(getattr(d, "bandwidth", 0.0)),
-            "privacy_clearance": int(getattr(d, "privacy_clearance", 0)),
-            "trust_score": float(getattr(env, "device_trust", {}).get(int(d_id), 0.0)),
-            "energy_init": float(getattr(env, "device_energy_init", {}).get(int(d_id), 0.0)),
-        }
-    return devices
 
 
 def train(
@@ -125,6 +122,7 @@ def train(
     NUM_DEVICES = 5
     EPISODES = int(episodes)
     MODEL_TYPES = _normalize_model_types(model_types, NUM_AGENTS)
+    TERMINATE_ON_FAIL = True
 
     SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
     scenario = (
@@ -159,7 +157,7 @@ def train(
         alpha_comm=float(alpha_comm),
     )
 
-    manager = MADDPGManager(
+    manager = MATD3Manager(
         agent_ids=list(range(NUM_AGENTS)),
         obs_dim=env.single_state_dim,
         action_dim=env.num_devices,
@@ -168,65 +166,51 @@ def train(
         shared_policy=False,
     )
 
-    plots_dir = os.path.join(RESULTS_DIR, "plots")
-    os.makedirs(plots_dir, exist_ok=True)
-
-    try:
-        with open(os.path.join(RESULTS_DIR, "run_config.json"), "w", encoding="utf-8") as f:
-            json.dump(
-                {
-                    "algorithm": "MADDPG",
-                    "variant": "AllConstraints",
-                    "episodes": int(EPISODES),
-                    "seed": int(seed),
-                    "sl": float(sl),
-                    "num_agents": int(NUM_AGENTS),
-                    "num_devices": int(NUM_DEVICES),
-                    "models": list(MODEL_TYPES),
-                    "scenario": str(scenario),
-                    "queue_per_device": bool(queue_per_device),
-                    "privacy_max_level": int(privacy_max_level),
-                    "privacy_profile": str(privacy_profile),
-                    "trust_min_for_max_privacy": float(trust_min_for_max_privacy),
-                    "trust_hard": bool(trust_hard),
-                    "trust_lambda": float(trust_lambda),
-                    "trust_score_range": [float(trust_score_min), float(trust_score_max)],
-                    "energy_budget_range": [float(energy_min), float(energy_max)],
-                    "alpha_comp": float(alpha_comp),
-                    "alpha_comm": float(alpha_comm),
-                },
-                f,
-                indent=2,
-                ensure_ascii=False,
-            )
-    except Exception:
-        pass
-
-    try:
-        with open(os.path.join(RESULTS_DIR, "model_summary.json"), "w", encoding="utf-8") as f:
-            json.dump({"models": list(MODEL_TYPES), "layer_specs": _layer_specs(env.tasks, NUM_AGENTS)}, f, indent=2, ensure_ascii=False)
-    except Exception:
-        pass
-
-    try:
-        with open(os.path.join(RESULTS_DIR, "device_summary.json"), "w", encoding="utf-8") as f:
-            json.dump({"devices": _device_summary(env)}, f, indent=2, ensure_ascii=False)
-    except Exception:
-        pass
-
     episode_team_rewards: list[float] = []
     episode_team_rewards_sum: list[float] = []
-    losses_total: list[float] = []
-    actor_losses: list[float] = []
-    critic_losses: list[float] = []
+    losses: list[float] = []
     eps_history: list[float] = []
     episode_steps: list[int] = []
     episode_success: list[int] = []
+    agent_reward_history = {i: [] for i in range(NUM_AGENTS)}
+    agent_success_history = {i: [] for i in range(NUM_AGENTS)}
+    total_env_steps = 0
+    total_fail_episodes = 0
+    fail_reasons_history: list[Counter[str]] = []
 
-    agent_reward_history: dict[int, list[float]] = {i: [] for i in range(NUM_AGENTS)}
-    agent_success_history: dict[int, list[int]] = {i: [] for i in range(NUM_AGENTS)}
-    trust_shortfall_sum_hist: dict[int, list[float]] = {i: [] for i in range(NUM_AGENTS)}
-    energy_spent_total_hist: list[float] = []
+    log_path = os.path.join(RESULTS_DIR, "train_log.jsonl")
+    try:
+        log_f = open(log_path, "w", encoding="utf-8")
+    except Exception:
+        log_f = None
+
+    def _fmt_seconds(sec: float) -> str:
+        sec = max(0.0, float(sec))
+        h = int(sec // 3600)
+        m = int((sec % 3600) // 60)
+        s = int(sec % 60)
+        return f"{h:02d}:{m:02d}:{s:02d}"
+
+    t0 = time.time()
+    print(
+        "MATD3 Training (CTDE) - AllConstraints\n"
+        f"  Agents: {NUM_AGENTS} | Devices: {NUM_DEVICES} | Episodes: {EPISODES}\n"
+        f"  Models: {MODEL_TYPES}\n"
+        f"  Scenario: {scenario}\n"
+        f"  Seed: {int(seed)}\n"
+        f"  S_l (max exposure fraction): {float(sl):.3f}\n"
+        f"  SaveDir: {SAVE_DIR}\n"
+        f"  Results: {RESULTS_DIR}\n"
+        f"  Privacy: {privacy_max_level} ({privacy_profile})\n"
+        f"  Trust: min_max_p={trust_min_for_max_privacy}, hard={trust_hard}\n"
+        f"  Energy: {energy_min}-{energy_max}\n"
+    )
+    print_device_info(env.resource_manager)
+    model_stats = _model_stats(getattr(env, "tasks", {}) or {}, NUM_AGENTS)
+    print(f"MODEL STATS (per agent): {model_stats}\n")
+
+    plots_dir = os.path.join(RESULTS_DIR, "plots")
+    os.makedirs(plots_dir, exist_ok=True)
 
     per_agent_comp_sum_hist: dict[int, list[float]] = {i: [] for i in range(NUM_AGENTS)}
     per_agent_comm_sum_hist: dict[int, list[float]] = {i: [] for i in range(NUM_AGENTS)}
@@ -237,17 +221,6 @@ def train(
     last_success_strategy: dict[str, dict[str, int]] | None = None
     last_success_ep: int | None = None
     last_success_flow: EvalEpisodeFlow | None = None
-
-    log_path = os.path.join(RESULTS_DIR, "train_log.jsonl")
-    try:
-        log_f = open(log_path, "w", encoding="utf-8")
-    except Exception:
-        log_f = None
-
-    t0 = time.time()
-    total_env_steps = 0
-    total_fail_episodes = 0
-    fail_reasons_history: list[Counter[str]] = []
 
     for ep in range(EPISODES):
         obs, _ = env.reset()
@@ -268,9 +241,6 @@ def train(
         ep_step_count: dict[int, int] = {i: 0 for i in range(NUM_AGENTS)}
         ep_flow_device_choices: dict[int, list[int]] = {i: [] for i in range(NUM_AGENTS)}
         ep_latency_trace: dict[int, list[dict]] = {i: [] for i in range(NUM_AGENTS)}
-        ep_trust_shortfall_sum: dict[int, float] = {i: 0.0 for i in range(NUM_AGENTS)}
-        ep_actor_updates: list[float] = []
-        ep_critic_updates: list[float] = []
         ep_fail_step: int | None = None
         ep_fail_agent: int | None = None
 
@@ -279,16 +249,15 @@ def train(
             actions = manager.get_actions(obs, valid_actions)
             layer_idx_before = {aid: int(env.agent_progress.get(aid, 0)) for aid in range(NUM_AGENTS) if not done.get(aid, False)}
 
-            next_obs, rewards, next_done, _truncated, infos = env.step(actions)
+            next_obs, rewards, next_done, truncated, infos = env.step(actions)
             steps += 1
-            total_env_steps += 1
 
             for aid in range(NUM_AGENTS):
                 if not done.get(aid, False):
                     agent_ep_reward[aid] += float(rewards.get(aid, 0.0))
 
             any_fail = False
-            for aid, info in (infos or {}).items():
+            for aid, info in infos.items():
                 if isinstance(info, dict) and info.get("success") is False:
                     any_fail = True
                     agent_failed[int(aid)] = True
@@ -301,36 +270,54 @@ def train(
                         ep_fail_step = int(steps - 1)
                         ep_fail_agent = int(aid)
 
-            for aid, info in (infos or {}).items():
-                if not isinstance(info, dict) or info.get("success") is not True:
+            for aid in range(NUM_AGENTS):
+                if done.get(aid, False):
                     continue
-                a = int(aid)
-                d = int(actions.get(a, 0))
-                ep_device_counts[a][d] += 1
-                ep_flow_device_choices[a].append(d)
-                lidx = int(layer_idx_before.get(a, int(env.agent_progress.get(a, 0)) - 1))
-                ep_layer_device_map[str(a)][str(lidx)] = int(d)
-                ep_t_comp_sum[a] += float(info.get("t_comp", 0.0))
-                ep_t_comm_sum[a] += float(info.get("t_comm", 0.0))
-                ep_step_count[a] += 1
-                ep_trust_shortfall_sum[a] += float(info.get("trust_shortfall", 0.0))
-                ep_latency_trace[a].append({"layer": int(lidx), "t_comp": float(info.get("t_comp", 0.0)), "t_comm": float(info.get("t_comm", 0.0))})
-                if log_trace and len(ep_trace) < int(trace_max_steps):
-                    ep_trace.append(
+                info = infos.get(aid, {}) if isinstance(infos, dict) else {}
+                if not isinstance(info, dict):
+                    continue
+                dev = int(actions.get(aid, 0))
+                ep_device_counts[aid][dev] += 1
+                ep_flow_device_choices[aid].append(dev)
+                ep_step_count[aid] += 1
+                if bool(info.get("success", True)) is True:
+                    ep_t_comp_sum[aid] += float(info.get("t_comp", 0.0))
+                    ep_t_comm_sum[aid] += float(info.get("t_comm", 0.0))
+                if bool(info.get("success", True)) is True and aid in layer_idx_before:
+                    layer_idx = int(layer_idx_before[aid])
+                    ep_layer_device_map[str(aid)][str(layer_idx)] = dev
+                    ep_latency_trace[aid].append(
                         {
-                            "agent": int(a),
-                            "layer": int(lidx),
-                            "device": int(d),
+                            "layer": int(layer_idx),
                             "t_comp": float(info.get("t_comp", 0.0)),
                             "t_comm": float(info.get("t_comm", 0.0)),
-                            "energy_cost": float(info.get("energy_cost", 0.0)),
-                            "energy_remaining": float(info.get("energy_remaining", 0.0)),
-                            "trust_required": float(info.get("trust_required", 0.0)),
-                            "trust_score": float(info.get("trust_score", 0.0)),
-                            "trust_shortfall": float(info.get("trust_shortfall", 0.0)),
-                            "trust_penalty": float(info.get("trust_penalty", 0.0)),
                         }
                     )
+
+            if log_trace and len(ep_trace) < int(trace_max_steps):
+                for aid in range(NUM_AGENTS):
+                    if done.get(aid, False):
+                        continue
+                    info = infos.get(aid, {}) if isinstance(infos, dict) else {}
+                    fail = info.get("fail", {}) if isinstance(info, dict) else {}
+                    fail_reason = str(fail.get("reason", "")) if isinstance(fail, dict) else ""
+                    ep_trace.append(
+                        {
+                            "step": int(steps - 1),
+                            "agent": int(aid),
+                            "layer": int(layer_idx_before.get(aid, 0)),
+                            "device": int(actions.get(aid, 0)),
+                            "success": bool(info.get("success", True)) if isinstance(info, dict) else True,
+                            "reward": float(rewards.get(aid, 0.0)),
+                            "t_comp": float(info.get("t_comp", 0.0)) if isinstance(info, dict) else 0.0,
+                            "t_comm": float(info.get("t_comm", 0.0)) if isinstance(info, dict) else 0.0,
+                            "fail_reason": fail_reason,
+                        }
+                    )
+
+            if any_fail and TERMINATE_ON_FAIL:
+                ep_failed = True
+                next_done = {i: True for i in range(NUM_AGENTS)}
 
             next_valid_actions = env.get_valid_actions()
             manager.remember(
@@ -346,11 +333,7 @@ def train(
 
             loss = manager.train()
             if loss is not None:
-                losses_total.append(float(loss.get("total", 0.0)))
-                actor_losses.append(float(loss.get("actor", 0.0)))
-                critic_losses.append(float(loss.get("critic", 0.0)))
-                ep_actor_updates.append(float(loss.get("actor", 0.0)))
-                ep_critic_updates.append(float(loss.get("critic", 0.0)))
+                losses.append(float(loss))
 
             team_r = float(sum(rewards.values())) / float(NUM_AGENTS)
             team_return_mean += team_r
@@ -359,23 +342,13 @@ def train(
             done = next_done
             obs = next_obs
 
-            if any_fail:
-                ep_failed = True
-
         finished_steps = max(1, steps)
         episode_team_rewards.append(team_return_mean / float(finished_steps))
         episode_team_rewards_sum.append(team_return_sum)
         episode_steps.append(steps)
         episode_success.append(0 if ep_failed else 1)
         fail_reasons_history.append(ep_fail_reasons)
-        if ep_failed:
-            total_fail_episodes += 1
-
         for aid in range(NUM_AGENTS):
-            agent_reward_history[aid].append(float(agent_ep_reward[aid]))
-            finished = bool(env.agent_progress.get(aid, 0) >= len(env.tasks.get(aid, [])))
-            agent_success_history[aid].append(1 if (not agent_failed[aid] and finished) else 0)
-            trust_shortfall_sum_hist[aid].append(float(ep_trust_shortfall_sum[aid]))
             per_agent_comp_sum_hist[aid].append(float(ep_t_comp_sum[aid]))
             per_agent_comm_sum_hist[aid].append(float(ep_t_comm_sum[aid]))
             per_agent_step_count_hist[aid].append(int(ep_step_count[aid]))
@@ -390,26 +363,27 @@ def train(
             last_success_ep = int(ep)
             last_success_flow = EvalEpisodeFlow(
                 agent_ids=list(range(NUM_AGENTS)),
-                device_choices={i: list(ep_flow_device_choices[i]) for i in range(NUM_AGENTS)},
+                device_choices=ep_flow_device_choices,
                 fail_step=ep_fail_step,
                 fail_agent=ep_fail_agent,
                 model_types={i: MODEL_TYPES[i] for i in range(NUM_AGENTS)},
             )
 
-        eps_now = float(manager._unique_agents()[0].eps.epsilon)
-        eps_history.append(eps_now)
-        ep_actor_mean = float(np.mean(ep_actor_updates)) if ep_actor_updates else None
-        ep_critic_mean = float(np.mean(ep_critic_updates)) if ep_critic_updates else None
+        for aid in range(NUM_AGENTS):
+            agent_reward_history[aid].append(agent_ep_reward[aid])
+            finished = bool(env.agent_progress.get(aid, 0) >= len(env.tasks.get(aid, [])))
+            agent_success_history[aid].append(1 if (not agent_failed[aid] and finished) else 0)
+
+        total_env_steps += steps
+        if ep_failed:
+            total_fail_episodes += 1
+
+        eps = manager._unique_agents()[0].eps.epsilon
+        eps_history.append(float(eps))
 
         if log_f is not None:
+            device_counts = {str(a): {str(k): int(v) for k, v in ep_device_counts[a].items()} for a in range(NUM_AGENTS)}
             try:
-                device_energy_init = {str(k): float(v) for k, v in getattr(env, "device_energy_init", {}).items()}
-                device_energy_remaining = {str(k): float(v) for k, v in getattr(env, "device_energy_remaining", {}).items()}
-                energy_spent = {k: float(device_energy_init.get(k, 0.0)) - float(device_energy_remaining.get(k, 0.0)) for k in device_energy_init.keys()}
-                energy_spent_total = float(sum(energy_spent.values()))
-                energy_spent_total_hist.append(energy_spent_total)
-
-                device_counts = {str(a): {str(k): int(v) for k, v in ep_device_counts[a].items()} for a in range(NUM_AGENTS)}
                 log_f.write(
                     json.dumps(
                         {
@@ -418,16 +392,8 @@ def train(
                             "sl": float(sl),
                             "scenario": str(scenario),
                             "models": list(MODEL_TYPES),
+                            "model_stats": model_stats,
                             "queue_per_device": bool(queue_per_device),
-                            "privacy_max_level": int(privacy_max_level),
-                            "privacy_profile": str(privacy_profile),
-                            "trust_min_for_max_privacy": float(trust_min_for_max_privacy),
-                            "trust_hard": bool(trust_hard),
-                            "trust_lambda": float(trust_lambda),
-                            "device_trust": {str(k): float(v) for k, v in getattr(env, "device_trust", {}).items()},
-                            "energy_budget_range": [float(energy_min), float(energy_max)],
-                            "alpha_comp": float(alpha_comp),
-                            "alpha_comm": float(alpha_comm),
                             "team_reward_sum": float(team_return_sum),
                             "team_reward_mean_step": float(team_return_mean / float(finished_steps)),
                             "steps": int(steps),
@@ -435,14 +401,8 @@ def train(
                             "fail_reasons": dict(ep_fail_reasons),
                             "per_agent_reward_sum": {str(a): float(agent_ep_reward[a]) for a in range(NUM_AGENTS)},
                             "per_agent_failed": {str(a): bool(agent_failed[a]) for a in range(NUM_AGENTS)},
-                            "trust_shortfall_sum": {str(a): float(ep_trust_shortfall_sum[a]) for a in range(NUM_AGENTS)},
-                            "actor_loss": ep_actor_mean,
-                            "critic_loss": ep_critic_mean,
                             "device_counts": device_counts,
                             "layer_device_map": ep_layer_device_map,
-                            "device_energy_init": device_energy_init,
-                            "device_energy_remaining": device_energy_remaining,
-                            "energy_spent_total": float(energy_spent_total),
                             "trace": ep_trace if log_trace else None,
                         },
                         ensure_ascii=False,
@@ -456,47 +416,58 @@ def train(
         if (ep + 1) % max(1, int(log_every)) == 0:
             avg = float(np.mean(episode_team_rewards_sum[-50:]))
             avg_steps = float(np.mean(episode_steps[-50:]))
-            avg_loss = float(np.mean(losses_total[-200:])) if losses_total else float("nan")
+            avg_loss = float(np.mean(losses[-200:])) if len(losses) >= 1 else float("nan")
             elapsed = time.time() - t0
             eps_per_sec = (ep + 1) / max(elapsed, 1e-9)
             eta = (EPISODES - (ep + 1)) / max(eps_per_sec, 1e-9)
+            replay_len = len(manager.buffer)
+
+            last_k = 50
             recent_fail = Counter()
-            for c in fail_reasons_history[-50:]:
+            for c in fail_reasons_history[-last_k:]:
                 recent_fail.update(c)
             top_fail = ", ".join([f"{k}={v}" for k, v in recent_fail.most_common(3)]) if recent_fail else "none"
+
             agent_stats = []
             for aid in range(NUM_AGENTS):
-                a_reward = float(np.mean(agent_reward_history[aid][-50:])) if agent_reward_history[aid] else 0.0
-                a_success = float(np.mean(agent_success_history[aid][-50:]) * 100.0) if agent_success_history[aid] else 0.0
+                a_reward = float(np.mean(agent_reward_history[aid][-50:]))
+                a_success = float(np.mean(agent_success_history[aid][-50:]) * 100.0)
                 agent_stats.append(f"A{aid}: {a_reward:.1f} ({a_success:.0f}%)")
-            stats_str = "[" + " | ".join(agent_stats) + "]"
+            stats_str = " | ".join(agent_stats)
             print(
-                f"Ep {ep+1:4d}/{EPISODES} - AvgSum(50): {avg:.1f} - {stats_str} - Eps: {eps_now:.3f} "
-                f"- Loss: {avg_loss:.4f} - Steps(50): {avg_steps:.1f} "
+                f"Ep {ep+1:4d}/{EPISODES} - Avg: {avg:.1f} - [{stats_str}] - Eps: {eps:.3f} "
+                f"- Loss: {avg_loss:.4f} - Steps(50): {avg_steps:.1f} - Replay: {replay_len} "
                 f"- Elapsed: {_fmt_seconds(elapsed)} - ETA: {_fmt_seconds(eta)} - FailReasons(50): {top_fail}"
             )
 
-    if log_f is not None:
-        try:
-            log_f.close()
-        except Exception:
-            pass
-
+    base = os.path.join(SAVE_DIR, "matd3")
+    manager.save(base)
     np.save(os.path.join(RESULTS_DIR, "team_reward_history.npy"), np.asarray(episode_team_rewards, dtype=np.float32))
     np.save(os.path.join(RESULTS_DIR, "team_reward_sum_history.npy"), np.asarray(episode_team_rewards_sum, dtype=np.float32))
-    np.save(os.path.join(RESULTS_DIR, "loss_history.npy"), np.asarray(losses_total, dtype=np.float32))
-    np.save(os.path.join(RESULTS_DIR, "actor_loss_history.npy"), np.asarray(actor_losses, dtype=np.float32))
-    np.save(os.path.join(RESULTS_DIR, "critic_loss_history.npy"), np.asarray(critic_losses, dtype=np.float32))
+    np.save(os.path.join(RESULTS_DIR, "loss_history.npy"), np.asarray(losses, dtype=np.float32))
     np.save(os.path.join(RESULTS_DIR, "epsilon_history.npy"), np.asarray(eps_history, dtype=np.float32))
     np.save(os.path.join(RESULTS_DIR, "episode_steps.npy"), np.asarray(episode_steps, dtype=np.int32))
     np.save(os.path.join(RESULTS_DIR, "episode_success.npy"), np.asarray(episode_success, dtype=np.int32))
 
-    plot_training_trends(out_path=os.path.join(plots_dir, "training_trends.png"), team_rewards=episode_team_rewards, losses=losses_total, eps_history=None, window=50)
-    plot_actor_critic_losses(out_path=os.path.join(plots_dir, "policy_value_losses.png"), actor_losses=actor_losses, critic_losses=critic_losses, window=200)
-    plot_avg_cumulative_rewards(out_path=os.path.join(plots_dir, "avg_cumulative_rewards.png"), episode_team_reward_sums=episode_team_rewards_sum, num_agents=NUM_AGENTS, window=50)
-    plot_per_agent_training_rewards(out_path=os.path.join(plots_dir, "training_agent_rewards.png"), agent_reward_history=agent_reward_history, model_types={i: MODEL_TYPES[i] for i in range(NUM_AGENTS)}, window=50)
-    plot_per_agent_success_rate(out_path=os.path.join(plots_dir, "training_agent_success_rate.png"), agent_success_history=agent_success_history, window=50)
-
+    plot_training_trends(
+        out_path=os.path.join(plots_dir, "training_trends.png"),
+        team_rewards=episode_team_rewards,
+        losses=losses,
+        eps_history=None,
+        window=50,
+    )
+    plot_avg_cumulative_rewards(
+        out_path=os.path.join(plots_dir, "avg_cumulative_rewards.png"),
+        episode_team_reward_sums=episode_team_rewards_sum,
+        num_agents=NUM_AGENTS,
+        window=50,
+    )
+    plot_per_agent_training_rewards(
+        out_path=os.path.join(plots_dir, "training_agent_rewards.png"),
+        agent_reward_history=agent_reward_history,
+        model_types={i: MODEL_TYPES[i] for i in range(NUM_AGENTS)},
+        window=50,
+    )
     if last_success_strategy:
         plot_training_execution_strategy(
             out_path=os.path.join(plots_dir, "execution_strategy.png"),
@@ -512,9 +483,12 @@ def train(
     per_agent_summary: dict[int, dict] = {}
     for aid in range(NUM_AGENTS):
         succ = float(np.mean(agent_success_history[aid][-last_k:]) * 100.0) if agent_success_history[aid] else 0.0
+        dc = Counter()
+        for c in per_agent_device_counts_hist[aid][-last_k:]:
+            dc.update(c)
         per_agent_summary[aid] = {
             "success_rate": succ,
-            "avg_trust_shortfall_sum_last_100": float(np.mean(trust_shortfall_sum_hist[aid][-last_k:])) if trust_shortfall_sum_hist[aid] else 0.0,
+            "device_counts": {str(k): int(v) for k, v in dc.items()},
             "model_type": MODEL_TYPES[aid],
         }
     plot_marl_eval_summary(out_path=os.path.join(plots_dir, "training_marl_summary.png"), per_agent=per_agent_summary)
@@ -526,33 +500,28 @@ def train(
         title="Average Layer-wise Latency Breakdown (training)",
     )
 
-    overall_succ = float(np.mean(episode_success) * 100.0) if episode_success else 0.0
-    try:
-        with open(os.path.join(RESULTS_DIR, "summary.json"), "w", encoding="utf-8") as f:
-            json.dump(
-                {
-                    "episodes": int(EPISODES),
-                    "seed": int(seed),
-                    "sl": float(sl),
-                    "scenario": str(scenario),
-                    "models": list(MODEL_TYPES),
-                    "variant": "AllConstraints",
-                    "overall_success_rate": float(overall_succ),
-                    "env_steps": int(total_env_steps),
-                    "fail_episodes": int(total_fail_episodes),
-                    "per_agent_summary": {str(k): v for k, v in per_agent_summary.items()},
-                },
-                f,
-                indent=2,
-                ensure_ascii=False,
-            )
-    except Exception:
-        pass
+    total_time = time.time() - t0
+    overall_succ = float(np.mean(episode_success) * 100.0) if len(episode_success) else 0.0
+    print(
+        "Training finished\n"
+        f"  Time: {_fmt_seconds(total_time)}\n"
+        f"  EnvSteps: {total_env_steps}\n"
+        f"  Success: {overall_succ:.1f}% | Fail episodes: {total_fail_episodes}/{EPISODES}\n"
+        f"  Models: {base}_actor_agent_*.pt and {base}_critic*_agent_*.pt\n"
+        f"  PlotDir: {plots_dir}\n"
+        f"  Log: {log_path}\n"
+    )
+
+    if log_f is not None:
+        try:
+            log_f.close()
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="MADDPG Training (CTDE) - AllConstraints")
-    parser.add_argument("--episodes", type=int, default=200)
+    parser = argparse.ArgumentParser(description="MATD3 Training (CTDE) - AllConstraints")
+    parser.add_argument("--episodes", type=int, default=5000)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--sl", type=float, nargs="*", default=[1.0])
     parser.add_argument("--models", type=str, nargs="+", default=["hugcnn", "cnn15", "miniresnet"])
@@ -598,4 +567,3 @@ if __name__ == "__main__":
             alpha_comp=float(args.alpha_comp),
             alpha_comm=float(args.alpha_comm),
         )
-
