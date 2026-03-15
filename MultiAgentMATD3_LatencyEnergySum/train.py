@@ -1,3 +1,4 @@
+# Standard imports
 import os
 import sys
 import time
@@ -7,11 +8,15 @@ from collections import Counter
 
 import numpy as np
 
-# Allow running both:
-# - as a module:  python -m MultiAgentMATD3_AllConstraints.train
-# - as a script:  python MultiAgentMATD3_AllConstraints/train.py
+# Handle path for local imports
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+# Algorithm-specific imports
 if __package__:
-    from .environment import MultiAgentIoTEnvAllConstraints
+    from .environment import MultiAgentIoTEnvLatencyEnergySum
     from .manager import MATD3Manager
     from .plots import (
         EvalEpisodeFlow,
@@ -19,27 +24,24 @@ if __package__:
         plot_execution_flow,
         plot_per_agent_layer_latency,
         plot_marl_eval_summary,
-        plot_actor_critic_losses,
         plot_training_execution_strategy,
         plot_training_trends,
         plot_per_agent_training_rewards,
+        plot_actor_critic_losses,
     )
 else:
-    PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    if PROJECT_ROOT not in sys.path:
-        sys.path.insert(0, PROJECT_ROOT)
-    from MultiAgentMATD3_AllConstraints.environment import MultiAgentIoTEnvAllConstraints
-    from MultiAgentMATD3_AllConstraints.manager import MATD3Manager
-    from MultiAgentMATD3_AllConstraints.plots import (
+    from MultiAgentMATD3_LatencyEnergySum.environment import MultiAgentIoTEnvLatencyEnergySum
+    from MultiAgentMATD3_LatencyEnergySum.manager import MATD3Manager
+    from MultiAgentMATD3_LatencyEnergySum.plots import (
         EvalEpisodeFlow,
         plot_avg_cumulative_rewards,
         plot_execution_flow,
         plot_per_agent_layer_latency,
         plot_marl_eval_summary,
-        plot_actor_critic_losses,
         plot_training_execution_strategy,
         plot_training_trends,
         plot_per_agent_training_rewards,
+        plot_actor_critic_losses,
     )
 
 
@@ -111,8 +113,6 @@ def train(
     privacy_max_level: int = 3,
     privacy_profile: str = "linear_front_loaded",
     trust_min_for_max_privacy: float = 0.8,
-    trust_hard: bool = True,
-    trust_lambda: float = 5.0,
     trust_score_min: float = 0.5,
     trust_score_max: float = 1.0,
     energy_min: float = 500.0,
@@ -130,8 +130,8 @@ def train(
     scenario = (
         _scenario_tag(MODEL_TYPES)
         + f"_pmax{int(privacy_max_level)}_{str(privacy_profile)}"
-        + f"_tmin{float(trust_min_for_max_privacy):g}_{'hard' if bool(trust_hard) else 'soft'}"
-        + f"_t{float(trust_score_min):g}-{float(trust_score_max):g}_lam{float(trust_lambda):g}"
+        + f"_tmin{float(trust_min_for_max_privacy):g}_hard"
+        + f"_t{float(trust_score_min):g}-{float(trust_score_max):g}"
         + f"_e{float(energy_min):g}-{float(energy_max):g}_ac{float(alpha_comp):g}_am{float(alpha_comm):g}"
     )
     RESULTS_DIR = os.path.join(SCRIPT_DIR, "results", scenario, _sl_tag(float(sl)))
@@ -139,7 +139,7 @@ def train(
     os.makedirs(RESULTS_DIR, exist_ok=True)
     os.makedirs(SAVE_DIR, exist_ok=True)
 
-    env = MultiAgentIoTEnvAllConstraints(
+    env = MultiAgentIoTEnvLatencyEnergySum(
         num_agents=NUM_AGENTS,
         num_devices=NUM_DEVICES,
         model_types=MODEL_TYPES,
@@ -152,8 +152,6 @@ def train(
         trust_score_min=float(trust_score_min),
         trust_score_max=float(trust_score_max),
         trust_min_for_max_privacy=float(trust_min_for_max_privacy),
-        trust_hard=bool(trust_hard),
-        trust_lambda=float(trust_lambda),
         energy_budget_range=(float(energy_min), float(energy_max)),
         alpha_comp=float(alpha_comp),
         alpha_comm=float(alpha_comm),
@@ -195,7 +193,7 @@ def train(
 
     t0 = time.time()
     print(
-        "MATD3 Training (CTDE) - AllConstraints\n"
+        "MATD3 Training (CTDE) - LatencyEnergySum\n"
         f"  Agents: {NUM_AGENTS} | Devices: {NUM_DEVICES} | Episodes: {EPISODES}\n"
         f"  Models: {MODEL_TYPES}\n"
         f"  Scenario: {scenario}\n"
@@ -204,7 +202,7 @@ def train(
         f"  SaveDir: {SAVE_DIR}\n"
         f"  Results: {RESULTS_DIR}\n"
         f"  Privacy: {privacy_max_level} ({privacy_profile})\n"
-        f"  Trust: min_max_p={trust_min_for_max_privacy}, hard={trust_hard}\n"
+        f"  Trust: min_max_p={trust_min_for_max_privacy} (HARD CONSTRAINT)\n"
         f"  Energy: {energy_min}-{energy_max}\n"
     )
     print_device_info(env.resource_manager)
@@ -216,6 +214,7 @@ def train(
 
     per_agent_comp_sum_hist: dict[int, list[float]] = {i: [] for i in range(NUM_AGENTS)}
     per_agent_comm_sum_hist: dict[int, list[float]] = {i: [] for i in range(NUM_AGENTS)}
+    per_agent_energy_sum_history: dict[int, list[float]] = {i: [] for i in range(NUM_AGENTS)}
     per_agent_step_count_hist: dict[int, list[int]] = {i: [] for i in range(NUM_AGENTS)}
     per_agent_device_counts_hist: dict[int, list[Counter[int]]] = {i: [] for i in range(NUM_AGENTS)}
     latency_traces_by_agent: dict[int, list[list[dict]]] = {i: [] for i in range(NUM_AGENTS)}
@@ -240,6 +239,7 @@ def train(
         ep_device_counts: dict[int, Counter[int]] = {i: Counter() for i in range(NUM_AGENTS)}
         ep_t_comp_sum: dict[int, float] = {i: 0.0 for i in range(NUM_AGENTS)}
         ep_t_comm_sum: dict[int, float] = {i: 0.0 for i in range(NUM_AGENTS)}
+        ep_energy_sum: dict[int, float] = {i: 0.0 for i in range(NUM_AGENTS)}
         ep_step_count: dict[int, int] = {i: 0 for i in range(NUM_AGENTS)}
         ep_flow_device_choices: dict[int, list[int]] = {i: [] for i in range(NUM_AGENTS)}
         ep_latency_trace: dict[int, list[dict]] = {i: [] for i in range(NUM_AGENTS)}
@@ -285,6 +285,7 @@ def train(
                 if bool(info.get("success", True)) is True:
                     ep_t_comp_sum[aid] += float(info.get("t_comp", 0.0))
                     ep_t_comm_sum[aid] += float(info.get("t_comm", 0.0))
+                    ep_energy_sum[aid] += float(info.get("energy_cost", 0.0))
                 if bool(info.get("success", True)) is True and aid in layer_idx_before:
                     layer_idx = int(layer_idx_before[aid])
                     ep_layer_device_map[str(aid)][str(layer_idx)] = dev
@@ -353,6 +354,7 @@ def train(
         for aid in range(NUM_AGENTS):
             per_agent_comp_sum_hist[aid].append(float(ep_t_comp_sum[aid]))
             per_agent_comm_sum_hist[aid].append(float(ep_t_comm_sum[aid]))
+            per_agent_energy_sum_history[aid].append(float(ep_energy_sum[aid]))
             per_agent_step_count_hist[aid].append(int(ep_step_count[aid]))
             per_agent_device_counts_hist[aid].append(ep_device_counts[aid])
             if ep_latency_trace[aid]:
@@ -402,6 +404,8 @@ def train(
                             "ep_failed": bool(ep_failed),
                             "fail_reasons": dict(ep_fail_reasons),
                             "per_agent_reward_sum": {str(a): float(agent_ep_reward[a]) for a in range(NUM_AGENTS)},
+                            "per_agent_latency_sum": {str(a): float(ep_t_comp_sum[a] + ep_t_comm_sum[a]) for a in range(NUM_AGENTS)},
+                            "per_agent_energy_sum": {str(a): float(ep_energy_sum[a]) for a in range(NUM_AGENTS)},
                             "per_agent_failed": {str(a): bool(agent_failed[a]) for a in range(NUM_AGENTS)},
                             "device_counts": device_counts,
                             "layer_device_map": ep_layer_device_map,
@@ -434,7 +438,9 @@ def train(
             for aid in range(NUM_AGENTS):
                 a_reward = float(np.mean(agent_reward_history[aid][-50:]))
                 a_success = float(np.mean(agent_success_history[aid][-50:]) * 100.0)
-                agent_stats.append(f"A{aid}: {a_reward:.1f} ({a_success:.0f}%)")
+                a_lat = float(np.mean(per_agent_comp_sum_hist[aid][-50:])) + float(np.mean(per_agent_comm_sum_hist[aid][-50:]))
+                a_en = float(np.mean(per_agent_energy_sum_history[aid][-50:]))
+                agent_stats.append(f"A{aid}: {a_reward:.1f} ({a_success:.0f}%, L:{a_lat:.2f}, E:{a_en:.1f})")
             stats_str = " | ".join(agent_stats)
             print(
                 f"Ep {ep+1:4d}/{EPISODES} - Avg: {avg:.1f} - [{stats_str}] - Eps: {eps:.3f} "
@@ -509,14 +515,14 @@ def train(
 
     total_time = time.time() - t0
     overall_succ = float(np.mean(episode_success) * 100.0) if len(episode_success) else 0.0
+    total_time = time.time() - t0
+    overall_succ = float(np.mean(episode_success) * 100.0) if episode_success else 0.0
     print(
         "Training finished\n"
         f"  Time: {_fmt_seconds(total_time)}\n"
         f"  EnvSteps: {total_env_steps}\n"
         f"  Success: {overall_succ:.1f}% | Fail episodes: {total_fail_episodes}/{EPISODES}\n"
-        f"  Models: {base}_actor_agent_*.pt and {base}_critic*_agent_*.pt\n"
         f"  PlotDir: {plots_dir}\n"
-        f"  Log: {log_path}\n"
     )
 
     if log_f is not None:
@@ -527,7 +533,7 @@ def train(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="MATD3 Training (CTDE) - AllConstraints")
+    parser = argparse.ArgumentParser(description="MATD3 Training (CTDE) - LatencyEnergySum")
     parser.add_argument("--episodes", type=int, default=5000)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--sl", type=float, nargs="*", default=[1.0])
@@ -541,8 +547,6 @@ if __name__ == "__main__":
     parser.add_argument("--privacy-profile", type=str, default="linear_front_loaded")
 
     parser.add_argument("--trust-min-for-max-privacy", type=float, default=0.8)
-    parser.add_argument("--trust-soft", action="store_true")
-    parser.add_argument("--trust-lambda", type=float, default=5.0)
     parser.add_argument("--trust-score-min", type=float, default=0.5)
     parser.add_argument("--trust-score-max", type=float, default=1.0)
 
@@ -565,8 +569,6 @@ if __name__ == "__main__":
             privacy_max_level=int(args.privacy_max_level),
             privacy_profile=str(args.privacy_profile),
             trust_min_for_max_privacy=float(args.trust_min_for_max_privacy),
-            trust_hard=not bool(args.trust_soft),
-            trust_lambda=float(args.trust_lambda),
             trust_score_min=float(args.trust_score_min),
             trust_score_max=float(args.trust_score_max),
             energy_min=float(args.energy_min),

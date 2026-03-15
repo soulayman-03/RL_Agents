@@ -1,0 +1,55 @@
+# Rapport d'Analyse : Entraînement MADDPG (Latency & Energy)
+
+## 1. Résumé des Résultats Actuels
+
+L'analyse des courbes d'entraînement montre que les agents parviennent à apprendre une politique efficace assez rapidement (environ 500-1000 épisodes), atteignant un plateau de récompense cumulée satisfaisant. Cependant, plusieurs indicateurs suggèrent des instabilités et des opportunités d'optimisation.
+
+### Observations par Graphe
+
+- **[avg_cumulative_rewards.png](file:///c:/Users/soulaimane/Desktop/PFE/RL/MultiAgentMADDPG_LatencyEnergySum/results/models_hugcnn_cnn15_miniresnet_pmax3_linear_front_loaded_tmin0.8_hard_t0.5-1_e500-1200_ac1_am1/plots/avg_cumulative_rewards.png)** : 
+    - **Convergence** : La moyenne mobile atteint rapidement un niveau élevé (récompense proche de -5).
+    - **Instabilité** : On observe des chutes brutales ("spikes") vers -175. Cela correspond à des épisodes où les contraintes dures (Énergie, Trust, Ressources) ne sont pas respectées, entraînant une pénalité sévère (-500).
+- **[policy_value_losses.png](file:///c:/Users/soulaimane/Desktop/PFE/RL/MultiAgentMADDPG_LatencyEnergySum/results/models_hugcnn_cnn15_miniresnet_pmax3_linear_front_loaded_tmin0.8_hard_t0.5-1_e500-1200_ac1_am1/plots/policy_value_losses.png)** :
+    - **Actor Loss** : Stable, ce qui est positif.
+    - **Critic Loss** : Présente des pics massifs (jusqu'à 500+). Cette variance élevée est problématique. Elle est probablement causée par la différence extrême entre la récompense de succès (~-5) et la pénalité d'échec (-500), rendant l'approximation de la valeur très difficile par le critique.
+- **[training_agent_rewards.png](file:///c:/Users/soulaimane/Desktop/PFE/RL/MultiAgentMADDPG_LatencyEnergySum/results/models_hugcnn_cnn15_miniresnet_pmax3_linear_front_loaded_tmin0.8_hard_t0.5-1_e500-1200_ac1_am1/plots/training_agent_rewards.png)** :
+    - Les trois agents (`hugcnn`, `cnn15`, `miniresnet`) se comportent de manière synchrone grâce au mélange de récompense collective (0.3). L'agent 2 (`miniresnet`) semble légèrement plus stable.
+
+---
+
+## 2. Problèmes Identifiés
+
+1. **Discontinuité de la Récompense** : L'écart entre un succès et un échec est trop grand pour un critique MLP standard.
+2. **Variance du Critique** : Les pics de perte du critique perturbent la mise à jour des politiques (acteurs).
+3. **Gestion des États Bloqués** : Lorsque aucune action n'est valide (contrainte d'énergie/trust impossible à satisfaire), l'agent échoue brutalement.
+4. **Architecture de la Politique** : Le modèle actuel utilise des MLPs simples qui pourraient ne pas capturer toutes les corrélations entre les dispositifs.
+
+---
+
+## 3. Améliorations Proposées
+
+### A. Optimisation de la Fonction de Récompense (Reward Shaping)
+- **Normalisation** : Réduire l'échelle de la pénalité d'échec ou introduire une pénalité progressive basée sur le "shortfall" (manque) d'énergie ou de trust, plutôt qu'une coupure nette.
+- **Bonus de Succès** : Ajouter un petit bonus positif pour chaque couche allouée avec succès afin d'encourager la progression.
+
+### B. Stabilisation du Critique
+- **Huber Loss** : Remplacer la MSE Loss du critique par une **Huber Loss** ou **Smooth L1 Loss** pour être plus robuste aux valeurs extrêmes causées par le -500.
+- **Target Network Update** : Ralentir le `tau` (soft update) pour stabiliser le critique face aux pics de variance.
+
+### C. Architecture des Réseaux (Networks)
+- **Attention Mechanisms** : Intégrer une couche d'attention dans le critique centralisé pour qu'il puisse mieux pondérer l'importance de chaque agent et de chaque dispositif dans l'état global.
+- **Layer Normalization** : Ajouter des couches de `LayerNorm` pour stabiliser l'apprentissage des features.
+
+### D. Exploration Avancée
+- **Ornstein-Uhlenbeck (OU) Noise** : Si les actions sont continues (ici elles sont discrètes via Gumbel-Softmax), envisager une exploration plus structurée. Pour le discret, essayer un `temperature schedule` plus fin pour le Gumbel-Softmax.
+
+### E. Gestion des Contraintes
+- **Look-ahead Heuristic** : Intégrer une petite heuristique dans l'observation pour informer l'agent de l'autonomie restante de manière plus explicite (ex: "nombre estimé de couches encore possibles avec l'énergie actuelle").
+
+---
+
+## 4. Plan d'Action Suggéré
+
+1. **Phase 1** : Implémenter la **Huber Loss** et ajuster le reward scaling.
+2. **Phase 2** : Ajouter `LayerNorm` dans l'acteur et le critique.
+3. **Phase 3** : Tester une architecture d'attention pour le critique centralisé.

@@ -43,7 +43,8 @@ def plot_training_trends(
     ax.set_xlabel("Episode")
     ax.set_ylabel("Return")
     ax.grid(True, linestyle="--", alpha=0.4)
-    ax.legend()
+    if ax.get_legend_handles_labels()[0]:
+        ax.legend()
 
     ax = axes[1]
     if len(losses) > 0:
@@ -56,7 +57,8 @@ def plot_training_trends(
     ax.set_xlabel("Train update")
     ax.set_ylabel("Loss")
     ax.grid(True, linestyle="--", alpha=0.4)
-    ax.legend()
+    if ax.get_legend_handles_labels()[0]:
+        ax.legend()
 
     fig.savefig(out_path, dpi=160)
     plt.close(fig)
@@ -88,7 +90,8 @@ def plot_avg_cumulative_rewards(
     ax.set_xlabel("Episode")
     ax.set_ylabel("Avg cumulative reward")
     ax.grid(True, linestyle="--", alpha=0.4)
-    ax.legend()
+    if ax.get_legend_handles_labels()[0]:
+        ax.legend()
     try:
         # Avoid confusing axis offsets like "-3.33e2" + tiny tick labels.
         ax.ticklabel_format(style="plain", axis="y", useOffset=False)
@@ -138,7 +141,8 @@ def plot_per_agent_training_rewards(
     ax.set_xlabel("Episode")
     ax.set_ylabel("Reward (sum per episode)")
     ax.grid(True, linestyle="--", alpha=0.4)
-    ax.legend(fontsize=9)
+    if ax.get_legend_handles_labels()[0]:
+        ax.legend(fontsize=9)
     if ylim is not None:
         y0, y1 = float(ylim[0]), float(ylim[1])
         ax.set_ylim(min(y0, y1), max(y0, y1))
@@ -173,7 +177,8 @@ def plot_marl_eval_summary(
     ax.set_title("Latency Components (avg)")
     ax.set_ylabel("Seconds (normalized units)")
     ax.grid(True, axis="y", linestyle="--", alpha=0.25)
-    ax.legend()
+    if ax.get_legend_handles_labels()[0]:
+        ax.legend()
 
     ax = axes[2]
     # Device counts heat-ish bar: show top-3 devices per agent.
@@ -190,7 +195,8 @@ def plot_marl_eval_summary(
     ax.set_xlabel("Device id")
     ax.set_ylabel("Count")
     ax.grid(True, axis="y", linestyle="--", alpha=0.25)
-    ax.legend()
+    if ax.get_legend_handles_labels()[0]:
+        ax.legend()
 
     fig.savefig(out_path, dpi=160)
     plt.close(fig)
@@ -364,7 +370,8 @@ def plot_layer_latency(
     plt.ylabel("Latency")
     plt.xlabel("Layers")
     plt.title(title)
-    plt.legend()
+    if plt.gca().get_legend_handles_labels()[0]:
+        plt.legend()
     plt.tight_layout()
     plt.savefig(out_path, dpi=160)
     plt.close()
@@ -428,7 +435,8 @@ def plot_per_agent_layer_latency(
             label += f" ({model_types[aid]})"
         ax.set_title(label)
         ax.grid(True, axis="y", linestyle="--", alpha=0.25)
-        ax.legend()
+        if ax.get_legend_handles_labels()[0]:
+            ax.legend()
 
     fig.suptitle(title)
     fig.savefig(out_path, dpi=160)
@@ -461,7 +469,8 @@ def plot_actor_critic_losses(
     ax.set_xlabel("Train update")
     ax.set_ylabel("Loss")
     ax.grid(True, linestyle="--", alpha=0.4)
-    ax.legend()
+    if ax.get_legend_handles_labels()[0]:
+        ax.legend()
 
     ax = axes[1]
     if c.size:
@@ -474,7 +483,8 @@ def plot_actor_critic_losses(
     ax.set_xlabel("Train update")
     ax.set_ylabel("Loss")
     ax.grid(True, linestyle="--", alpha=0.4)
-    ax.legend()
+    if ax.get_legend_handles_labels()[0]:
+        ax.legend()
 
     fig.savefig(out_path, dpi=160)
     plt.close(fig)
@@ -518,7 +528,8 @@ def plot_per_agent_success_rate(
     ax.set_ylabel("Success rate (%)")
     ax.grid(True, linestyle="--", alpha=0.4)
     ax.set_ylim(0.0, 100.0)
-    ax.legend(ncols=2, fontsize=9)
+    if ax.get_legend_handles_labels()[0]:
+        ax.legend(ncols=2, fontsize=9)
 
     fig.savefig(out_path, dpi=160)
     plt.close(fig)

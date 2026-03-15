@@ -123,6 +123,29 @@ def generate_specific_model(model_type="lenet") -> List[DNNLayer]:
              (12.0, 180.0, 0.3),   # FC4 (256)
              (0.8, 3.0, 0.01),     # Output
         ]
+    elif model_type == "vgg11": # 11 layers, very heavy memory in FC
+        profiles = [
+            (30.0, 100.0, 40.0),  # Conv1
+            (45.0, 200.0, 20.0),  # Conv2
+            (50.0, 250.0, 10.0),  # Conv3
+            (50.0, 250.0, 10.0),  # Conv4
+            (60.0, 300.0, 5.0),   # Conv5
+            (60.0, 300.0, 5.0),   # Conv6
+            (60.0, 300.0, 5.0),   # Conv7
+            (60.0, 300.0, 5.0),   # Conv8
+            (1.0, 1.0, 1.0),      # Flatten
+            (30.0, 500.0, 0.5),   # FC1 (Huge memory)
+            (20.0, 400.0, 0.1),   # FC2
+            (0.5, 2.0, 0.01)      # Output
+        ]
+    elif model_type == "resnet18": # 18 layers, compute heavy, balanced memory
+        # Simulating 8 blocks of 2 layers + input/output
+        profiles = [(35.0, 120.0, 30.0)] # Input Conv
+        for _ in range(8):
+            profiles.append((25.0, 150.0, 15.0)) # ResBlock Layer 1
+            profiles.append((25.0, 150.0, 15.0)) # ResBlock Layer 2
+        profiles.append((1.0, 1.0, 1.0))   # GlobalAvgPool
+        profiles.append((5.0, 50.0, 0.01)) # FC Output
     elif model_type == "cnn7": # 7 layers
         profiles = [(2.0, 5.0, 2.0)] * 7
     elif model_type == "cnn10": # 10 layers

@@ -1,0 +1,44 @@
+{
+  "devices": {
+    "0": {
+      "cpu_speed": 154.1828039537365,
+      "memory_capacity": 2452.5225859676007,
+      "bandwidth": 615.0175910214716,
+      "privacy_clearance": 3,
+      "trust_score": 0.8383497437114557,
+      "energy_init": 6530.4658236252235
+    },
+    "1": {
+      "cpu_speed": 139.1861378557543,
+      "memory_capacity": 2615.239869960166,
+      "bandwidth": 894.4006468006055,
+      "privacy_clearance": 3,
+      "trust_score": 0.9460897838524227,
+      "energy_init": 8537.487016723537
+    },
+    "2": {
+      "cpu_speed": 152.71477537347118,
+      "memory_capacity": 2466.7436269117457,
+      "bandwidth": 506.2171439169554,
+      "privacy_clearance": 2,
+      "trust_score": 0.543469416314708,
+      "energy_init": 5185.751787787045
+    },
+    "3": {
+      "cpu_speed": 150.16065864310087,
+      "memory_capacity": 2455.7255363361137,
+      "bandwidth": 569.3025904119891,
+      "privacy_clearance": 1,
+      "trust_score": 0.7109609098426353,
+      "energy_init": 6391.8635548065395
+    },
+    "4": {
+      "cpu_speed": 141.6132186612209,
+      "memory_capacity": 3637.457936139408,
+      "bandwidth": 935.6582740066959,
+      "privacy_clearance": 1,
+      "trust_score": 0.5148986097190351,
+      "energy_init": 9549.191064456663
+    }
+  }
+}
