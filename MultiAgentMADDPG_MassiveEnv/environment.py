@@ -107,9 +107,9 @@ class MultiAgentIoTEnvLatencyEnergySum(gym.Env):
         self.resource_manager.reset_devices_with_seed(self.num_devices, seed)
         # Boost resources for High-Res Environment
         for d in getattr(self.resource_manager, "devices", {}).values():
-            d.cpu_speed *= 2.0
-            d.memory_capacity *= 2.0
-            d.bandwidth *= 2.0
+            d.cpu_speed *= 2.5
+            d.memory_capacity *= 2.5
+            d.bandwidth *= 2.5
         
         self._set_multilevel_device_privacy()
 

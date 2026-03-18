@@ -137,8 +137,8 @@ def train(
     energy_max: float = 12001.0,
     alpha_comp: float = 1.0,
     alpha_comm: float = 1.0,
-    eps_decay: float = 0.9995,
-    eps_min: float = 0.05,
+    eps_decay: float = 0.9999,
+    eps_min: float = 0.01,
 ):
     NUM_AGENTS = 10
     NUM_DEVICES = 15

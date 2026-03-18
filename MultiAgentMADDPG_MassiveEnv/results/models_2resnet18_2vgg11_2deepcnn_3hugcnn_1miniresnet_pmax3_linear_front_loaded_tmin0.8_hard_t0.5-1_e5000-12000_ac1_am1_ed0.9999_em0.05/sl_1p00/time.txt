@@ -1,0 +1,4 @@
+Training finished
+  Time: 11:15:56
+  EnvSteps: 94993
+  Success: 94.6% | Fail episodes: 271/5000

@@ -1,0 +1,892 @@
+{
+  "models": [
+    "resnet18",
+    "vgg11",
+    "deepcnn",
+    "hugcnn",
+    "miniresnet",
+    "resnet18",
+    "vgg11",
+    "deepcnn",
+    "hugcnn",
+    "hugcnn"
+  ],
+  "layer_specs": {
+    "0": [
+      {
+        "idx": 0,
+        "name": "resnet18_L0",
+        "compute": 35.0,
+        "memory": 120.0,
+        "output": 30.0,
+        "privacy": 3
+      },
+      {
+        "idx": 1,
+        "name": "resnet18_L1",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 3
+      },
+      {
+        "idx": 2,
+        "name": "resnet18_L2",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 3
+      },
+      {
+        "idx": 3,
+        "name": "resnet18_L3",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 2
+      },
+      {
+        "idx": 4,
+        "name": "resnet18_L4",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 2
+      },
+      {
+        "idx": 5,
+        "name": "resnet18_L5",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 2
+      },
+      {
+        "idx": 6,
+        "name": "resnet18_L6",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 2
+      },
+      {
+        "idx": 7,
+        "name": "resnet18_L7",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 2
+      },
+      {
+        "idx": 8,
+        "name": "resnet18_L8",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 2
+      },
+      {
+        "idx": 9,
+        "name": "resnet18_L9",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 2
+      },
+      {
+        "idx": 10,
+        "name": "resnet18_L10",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 1
+      },
+      {
+        "idx": 11,
+        "name": "resnet18_L11",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 1
+      },
+      {
+        "idx": 12,
+        "name": "resnet18_L12",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 1
+      },
+      {
+        "idx": 13,
+        "name": "resnet18_L13",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 1
+      },
+      {
+        "idx": 14,
+        "name": "resnet18_L14",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 1
+      },
+      {
+        "idx": 15,
+        "name": "resnet18_L15",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 0
+      },
+      {
+        "idx": 16,
+        "name": "resnet18_L16",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 0
+      },
+      {
+        "idx": 17,
+        "name": "resnet18_L17",
+        "compute": 1.0,
+        "memory": 1.0,
+        "output": 1.0,
+        "privacy": 0
+      },
+      {
+        "idx": 18,
+        "name": "resnet18_L18",
+        "compute": 5.0,
+        "memory": 50.0,
+        "output": 0.01,
+        "privacy": 0
+      }
+    ],
+    "1": [
+      {
+        "idx": 0,
+        "name": "vgg11_L0",
+        "compute": 30.0,
+        "memory": 100.0,
+        "output": 40.0,
+        "privacy": 3
+      },
+      {
+        "idx": 1,
+        "name": "vgg11_L1",
+        "compute": 45.0,
+        "memory": 200.0,
+        "output": 20.0,
+        "privacy": 3
+      },
+      {
+        "idx": 2,
+        "name": "vgg11_L2",
+        "compute": 50.0,
+        "memory": 250.0,
+        "output": 10.0,
+        "privacy": 2
+      },
+      {
+        "idx": 3,
+        "name": "vgg11_L3",
+        "compute": 50.0,
+        "memory": 250.0,
+        "output": 10.0,
+        "privacy": 2
+      },
+      {
+        "idx": 4,
+        "name": "vgg11_L4",
+        "compute": 60.0,
+        "memory": 300.0,
+        "output": 5.0,
+        "privacy": 2
+      },
+      {
+        "idx": 5,
+        "name": "vgg11_L5",
+        "compute": 60.0,
+        "memory": 300.0,
+        "output": 5.0,
+        "privacy": 2
+      },
+      {
+        "idx": 6,
+        "name": "vgg11_L6",
+        "compute": 60.0,
+        "memory": 300.0,
+        "output": 5.0,
+        "privacy": 1
+      },
+      {
+        "idx": 7,
+        "name": "vgg11_L7",
+        "compute": 60.0,
+        "memory": 300.0,
+        "output": 5.0,
+        "privacy": 1
+      },
+      {
+        "idx": 8,
+        "name": "vgg11_L8",
+        "compute": 1.0,
+        "memory": 1.0,
+        "output": 1.0,
+        "privacy": 1
+      },
+      {
+        "idx": 9,
+        "name": "vgg11_L9",
+        "compute": 30.0,
+        "memory": 500.0,
+        "output": 0.5,
+        "privacy": 1
+      },
+      {
+        "idx": 10,
+        "name": "vgg11_L10",
+        "compute": 20.0,
+        "memory": 400.0,
+        "output": 0.1,
+        "privacy": 0
+      },
+      {
+        "idx": 11,
+        "name": "vgg11_L11",
+        "compute": 0.5,
+        "memory": 2.0,
+        "output": 0.01,
+        "privacy": 0
+      }
+    ],
+    "2": [
+      {
+        "idx": 0,
+        "name": "deepcnn_L0",
+        "compute": 10.0,
+        "memory": 40.0,
+        "output": 20.0,
+        "privacy": 3
+      },
+      {
+        "idx": 1,
+        "name": "deepcnn_L1",
+        "compute": 15.0,
+        "memory": 80.0,
+        "output": 10.0,
+        "privacy": 2
+      },
+      {
+        "idx": 2,
+        "name": "deepcnn_L2",
+        "compute": 0.5,
+        "memory": 0.5,
+        "output": 0.5,
+        "privacy": 2
+      },
+      {
+        "idx": 3,
+        "name": "deepcnn_L3",
+        "compute": 8.0,
+        "memory": 200.0,
+        "output": 0.5,
+        "privacy": 1
+      },
+      {
+        "idx": 4,
+        "name": "deepcnn_L4",
+        "compute": 0.2,
+        "memory": 2.0,
+        "output": 0.01,
+        "privacy": 0
+      }
+    ],
+    "3": [
+      {
+        "idx": 0,
+        "name": "hugecnn_L0",
+        "compute": 35.0,
+        "memory": 130.0,
+        "output": 45.0,
+        "privacy": 3
+      },
+      {
+        "idx": 1,
+        "name": "hugecnn_L1",
+        "compute": 55.0,
+        "memory": 240.0,
+        "output": 28.0,
+        "privacy": 3
+      },
+      {
+        "idx": 2,
+        "name": "hugecnn_L2",
+        "compute": 45.0,
+        "memory": 260.0,
+        "output": 18.0,
+        "privacy": 2
+      },
+      {
+        "idx": 3,
+        "name": "hugecnn_L3",
+        "compute": 30.0,
+        "memory": 220.0,
+        "output": 18.0,
+        "privacy": 2
+      },
+      {
+        "idx": 4,
+        "name": "hugecnn_L4",
+        "compute": 1.0,
+        "memory": 1.0,
+        "output": 1.0,
+        "privacy": 2
+      },
+      {
+        "idx": 5,
+        "name": "hugecnn_L5",
+        "compute": 40.0,
+        "memory": 520.0,
+        "output": 2.0,
+        "privacy": 1
+      },
+      {
+        "idx": 6,
+        "name": "hugecnn_L6",
+        "compute": 26.0,
+        "memory": 360.0,
+        "output": 1.0,
+        "privacy": 1
+      },
+      {
+        "idx": 7,
+        "name": "hugecnn_L7",
+        "compute": 18.0,
+        "memory": 260.0,
+        "output": 0.6,
+        "privacy": 1
+      },
+      {
+        "idx": 8,
+        "name": "hugecnn_L8",
+        "compute": 12.0,
+        "memory": 180.0,
+        "output": 0.3,
+        "privacy": 0
+      },
+      {
+        "idx": 9,
+        "name": "hugecnn_L9",
+        "compute": 0.8,
+        "memory": 3.0,
+        "output": 0.01,
+        "privacy": 0
+      }
+    ],
+    "4": [
+      {
+        "idx": 0,
+        "name": "miniresnet_L0",
+        "compute": 12.0,
+        "memory": 50.0,
+        "output": 25.0,
+        "privacy": 3
+      },
+      {
+        "idx": 1,
+        "name": "miniresnet_L1",
+        "compute": 18.0,
+        "memory": 60.0,
+        "output": 25.0,
+        "privacy": 2
+      },
+      {
+        "idx": 2,
+        "name": "miniresnet_L2",
+        "compute": 1.0,
+        "memory": 1.0,
+        "output": 1.0,
+        "privacy": 2
+      },
+      {
+        "idx": 3,
+        "name": "miniresnet_L3",
+        "compute": 6.0,
+        "memory": 150.0,
+        "output": 0.2,
+        "privacy": 1
+      },
+      {
+        "idx": 4,
+        "name": "miniresnet_L4",
+        "compute": 0.1,
+        "memory": 1.0,
+        "output": 0.01,
+        "privacy": 0
+      }
+    ],
+    "5": [
+      {
+        "idx": 0,
+        "name": "resnet18_L0",
+        "compute": 35.0,
+        "memory": 120.0,
+        "output": 30.0,
+        "privacy": 3
+      },
+      {
+        "idx": 1,
+        "name": "resnet18_L1",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 3
+      },
+      {
+        "idx": 2,
+        "name": "resnet18_L2",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 3
+      },
+      {
+        "idx": 3,
+        "name": "resnet18_L3",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 2
+      },
+      {
+        "idx": 4,
+        "name": "resnet18_L4",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 2
+      },
+      {
+        "idx": 5,
+        "name": "resnet18_L5",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 2
+      },
+      {
+        "idx": 6,
+        "name": "resnet18_L6",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 2
+      },
+      {
+        "idx": 7,
+        "name": "resnet18_L7",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 2
+      },
+      {
+        "idx": 8,
+        "name": "resnet18_L8",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 2
+      },
+      {
+        "idx": 9,
+        "name": "resnet18_L9",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 2
+      },
+      {
+        "idx": 10,
+        "name": "resnet18_L10",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 1
+      },
+      {
+        "idx": 11,
+        "name": "resnet18_L11",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 1
+      },
+      {
+        "idx": 12,
+        "name": "resnet18_L12",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 1
+      },
+      {
+        "idx": 13,
+        "name": "resnet18_L13",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 1
+      },
+      {
+        "idx": 14,
+        "name": "resnet18_L14",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 1
+      },
+      {
+        "idx": 15,
+        "name": "resnet18_L15",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 0
+      },
+      {
+        "idx": 16,
+        "name": "resnet18_L16",
+        "compute": 25.0,
+        "memory": 150.0,
+        "output": 15.0,
+        "privacy": 0
+      },
+      {
+        "idx": 17,
+        "name": "resnet18_L17",
+        "compute": 1.0,
+        "memory": 1.0,
+        "output": 1.0,
+        "privacy": 0
+      },
+      {
+        "idx": 18,
+        "name": "resnet18_L18",
+        "compute": 5.0,
+        "memory": 50.0,
+        "output": 0.01,
+        "privacy": 0
+      }
+    ],
+    "6": [
+      {
+        "idx": 0,
+        "name": "vgg11_L0",
+        "compute": 30.0,
+        "memory": 100.0,
+        "output": 40.0,
+        "privacy": 3
+      },
+      {
+        "idx": 1,
+        "name": "vgg11_L1",
+        "compute": 45.0,
+        "memory": 200.0,
+        "output": 20.0,
+        "privacy": 3
+      },
+      {
+        "idx": 2,
+        "name": "vgg11_L2",
+        "compute": 50.0,
+        "memory": 250.0,
+        "output": 10.0,
+        "privacy": 2
+      },
+      {
+        "idx": 3,
+        "name": "vgg11_L3",
+        "compute": 50.0,
+        "memory": 250.0,
+        "output": 10.0,
+        "privacy": 2
+      },
+      {
+        "idx": 4,
+        "name": "vgg11_L4",
+        "compute": 60.0,
+        "memory": 300.0,
+        "output": 5.0,
+        "privacy": 2
+      },
+      {
+        "idx": 5,
+        "name": "vgg11_L5",
+        "compute": 60.0,
+        "memory": 300.0,
+        "output": 5.0,
+        "privacy": 2
+      },
+      {
+        "idx": 6,
+        "name": "vgg11_L6",
+        "compute": 60.0,
+        "memory": 300.0,
+        "output": 5.0,
+        "privacy": 1
+      },
+      {
+        "idx": 7,
+        "name": "vgg11_L7",
+        "compute": 60.0,
+        "memory": 300.0,
+        "output": 5.0,
+        "privacy": 1
+      },
+      {
+        "idx": 8,
+        "name": "vgg11_L8",
+        "compute": 1.0,
+        "memory": 1.0,
+        "output": 1.0,
+        "privacy": 1
+      },
+      {
+        "idx": 9,
+        "name": "vgg11_L9",
+        "compute": 30.0,
+        "memory": 500.0,
+        "output": 0.5,
+        "privacy": 1
+      },
+      {
+        "idx": 10,
+        "name": "vgg11_L10",
+        "compute": 20.0,
+        "memory": 400.0,
+        "output": 0.1,
+        "privacy": 0
+      },
+      {
+        "idx": 11,
+        "name": "vgg11_L11",
+        "compute": 0.5,
+        "memory": 2.0,
+        "output": 0.01,
+        "privacy": 0
+      }
+    ],
+    "7": [
+      {
+        "idx": 0,
+        "name": "deepcnn_L0",
+        "compute": 10.0,
+        "memory": 40.0,
+        "output": 20.0,
+        "privacy": 3
+      },
+      {
+        "idx": 1,
+        "name": "deepcnn_L1",
+        "compute": 15.0,
+        "memory": 80.0,
+        "output": 10.0,
+        "privacy": 2
+      },
+      {
+        "idx": 2,
+        "name": "deepcnn_L2",
+        "compute": 0.5,
+        "memory": 0.5,
+        "output": 0.5,
+        "privacy": 2
+      },
+      {
+        "idx": 3,
+        "name": "deepcnn_L3",
+        "compute": 8.0,
+        "memory": 200.0,
+        "output": 0.5,
+        "privacy": 1
+      },
+      {
+        "idx": 4,
+        "name": "deepcnn_L4",
+        "compute": 0.2,
+        "memory": 2.0,
+        "output": 0.01,
+        "privacy": 0
+      }
+    ],
+    "8": [
+      {
+        "idx": 0,
+        "name": "hugecnn_L0",
+        "compute": 35.0,
+        "memory": 130.0,
+        "output": 45.0,
+        "privacy": 3
+      },
+      {
+        "idx": 1,
+        "name": "hugecnn_L1",
+        "compute": 55.0,
+        "memory": 240.0,
+        "output": 28.0,
+        "privacy": 3
+      },
+      {
+        "idx": 2,
+        "name": "hugecnn_L2",
+        "compute": 45.0,
+        "memory": 260.0,
+        "output": 18.0,
+        "privacy": 2
+      },
+      {
+        "idx": 3,
+        "name": "hugecnn_L3",
+        "compute": 30.0,
+        "memory": 220.0,
+        "output": 18.0,
+        "privacy": 2
+      },
+      {
+        "idx": 4,
+        "name": "hugecnn_L4",
+        "compute": 1.0,
+        "memory": 1.0,
+        "output": 1.0,
+        "privacy": 2
+      },
+      {
+        "idx": 5,
+        "name": "hugecnn_L5",
+        "compute": 40.0,
+        "memory": 520.0,
+        "output": 2.0,
+        "privacy": 1
+      },
+      {
+        "idx": 6,
+        "name": "hugecnn_L6",
+        "compute": 26.0,
+        "memory": 360.0,
+        "output": 1.0,
+        "privacy": 1
+      },
+      {
+        "idx": 7,
+        "name": "hugecnn_L7",
+        "compute": 18.0,
+        "memory": 260.0,
+        "output": 0.6,
+        "privacy": 1
+      },
+      {
+        "idx": 8,
+        "name": "hugecnn_L8",
+        "compute": 12.0,
+        "memory": 180.0,
+        "output": 0.3,
+        "privacy": 0
+      },
+      {
+        "idx": 9,
+        "name": "hugecnn_L9",
+        "compute": 0.8,
+        "memory": 3.0,
+        "output": 0.01,
+        "privacy": 0
+      }
+    ],
+    "9": [
+      {
+        "idx": 0,
+        "name": "hugecnn_L0",
+        "compute": 35.0,
+        "memory": 130.0,
+        "output": 45.0,
+        "privacy": 3
+      },
+      {
+        "idx": 1,
+        "name": "hugecnn_L1",
+        "compute": 55.0,
+        "memory": 240.0,
+        "output": 28.0,
+        "privacy": 3
+      },
+      {
+        "idx": 2,
+        "name": "hugecnn_L2",
+        "compute": 45.0,
+        "memory": 260.0,
+        "output": 18.0,
+        "privacy": 2
+      },
+      {
+        "idx": 3,
+        "name": "hugecnn_L3",
+        "compute": 30.0,
+        "memory": 220.0,
+        "output": 18.0,
+        "privacy": 2
+      },
+      {
+        "idx": 4,
+        "name": "hugecnn_L4",
+        "compute": 1.0,
+        "memory": 1.0,
+        "output": 1.0,
+        "privacy": 2
+      },
+      {
+        "idx": 5,
+        "name": "hugecnn_L5",
+        "compute": 40.0,
+        "memory": 520.0,
+        "output": 2.0,
+        "privacy": 1
+      },
+      {
+        "idx": 6,
+        "name": "hugecnn_L6",
+        "compute": 26.0,
+        "memory": 360.0,
+        "output": 1.0,
+        "privacy": 1
+      },
+      {
+        "idx": 7,
+        "name": "hugecnn_L7",
+        "compute": 18.0,
+        "memory": 260.0,
+        "output": 0.6,
+        "privacy": 1
+      },
+      {
+        "idx": 8,
+        "name": "hugecnn_L8",
+        "compute": 12.0,
+        "memory": 180.0,
+        "output": 0.3,
+        "privacy": 0
+      },
+      {
+        "idx": 9,
+        "name": "hugecnn_L9",
+        "compute": 0.8,
+        "memory": 3.0,
+        "output": 0.01,
+        "privacy": 0
+      }
+    ]
+  }
+}

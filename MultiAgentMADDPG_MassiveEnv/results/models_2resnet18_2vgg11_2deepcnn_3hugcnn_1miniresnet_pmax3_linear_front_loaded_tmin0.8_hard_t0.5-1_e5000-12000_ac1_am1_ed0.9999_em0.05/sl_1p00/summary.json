@@ -1,0 +1,74 @@
+{
+  "episodes": 5000,
+  "seed": 42,
+  "sl": 1.0,
+  "scenario": "models_2resnet18_2vgg11_2deepcnn_3hugcnn_1miniresnet_pmax3_linear_front_loaded_tmin0.8_hard_t0.5-1_e5000-12000_ac1_am1_ed0.9999_em0.05",
+  "models": [
+    "resnet18",
+    "vgg11",
+    "deepcnn",
+    "hugcnn",
+    "miniresnet",
+    "resnet18",
+    "vgg11",
+    "deepcnn",
+    "hugcnn",
+    "hugcnn"
+  ],
+  "variant": "LatencyEnergySum",
+  "overall_success_rate": 94.58,
+  "env_steps": 94993,
+  "fail_episodes": 271,
+  "per_agent_summary": {
+    "0": {
+      "success_rate": 100.0,
+      "avg_trust_shortfall_sum_last_100": 0.0,
+      "model_type": "resnet18"
+    },
+    "1": {
+      "success_rate": 100.0,
+      "avg_trust_shortfall_sum_last_100": 0.0,
+      "model_type": "vgg11"
+    },
+    "2": {
+      "success_rate": 100.0,
+      "avg_trust_shortfall_sum_last_100": 0.0,
+      "model_type": "deepcnn"
+    },
+    "3": {
+      "success_rate": 100.0,
+      "avg_trust_shortfall_sum_last_100": 0.0,
+      "model_type": "hugcnn"
+    },
+    "4": {
+      "success_rate": 100.0,
+      "avg_trust_shortfall_sum_last_100": 0.0,
+      "model_type": "miniresnet"
+    },
+    "5": {
+      "success_rate": 99.0,
+      "avg_trust_shortfall_sum_last_100": 0.0,
+      "model_type": "resnet18"
+    },
+    "6": {
+      "success_rate": 99.0,
+      "avg_trust_shortfall_sum_last_100": 0.0,
+      "model_type": "vgg11"
+    },
+    "7": {
+      "success_rate": 100.0,
+      "avg_trust_shortfall_sum_last_100": 0.0,
+      "model_type": "deepcnn"
+    },
+    "8": {
+      "success_rate": 100.0,
+      "avg_trust_shortfall_sum_last_100": 0.0,
+      "model_type": "hugcnn"
+    },
+    "9": {
+      "success_rate": 100.0,
+      "avg_trust_shortfall_sum_last_100": 0.0,
+      "model_type": "hugcnn"
+    }
+  }
+}
