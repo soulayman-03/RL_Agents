@@ -1,0 +1,154 @@
+{
+  "devices": {
+    "0": {
+      "cpu_speed": 128.4856699614471,
+      "memory_capacity": 2043.768821639667,
+      "bandwidth": 512.5146591845596,
+      "privacy_clearance": 0,
+      "trust_score": 0.7246045231419268,
+      "energy_init": 8215.974157702898,
+      "power_comp": 2.5697133992289416,
+      "power_comm": 2.0500586367382385
+    },
+    "1": {
+      "cpu_speed": 115.98844821312859,
+      "memory_capacity": 2179.3665583001384,
+      "bandwidth": 745.3338723338379,
+      "privacy_clearance": 0,
+      "trust_score": 0.6390953541153314,
+      "energy_init": 5873.7831399724655,
+      "power_comp": 2.319768964262572,
+      "power_comm": 2.981335489335352
+    },
+    "2": {
+      "cpu_speed": 127.262312811226,
+      "memory_capacity": 2055.6196890931215,
+      "bandwidth": 421.8476199307962,
+      "privacy_clearance": 2,
+      "trust_score": 0.934650160396467,
+      "energy_init": 11456.06760419712,
+      "power_comp": 2.54524625622452,
+      "power_comm": 1.687390479723185
+    },
+    "3": {
+      "cpu_speed": 125.13388220258406,
+      "memory_capacity": 2046.4379469467613,
+      "bandwidth": 474.4188253433242,
+      "privacy_clearance": 3,
+      "trust_score": 0.8794036835648836,
+      "energy_init": 5551.601386549207,
+      "power_comp": 2.502677644051681,
+      "power_comm": 1.8976753013732968
+    },
+    "4": {
+      "cpu_speed": 118.01101555101741,
+      "memory_capacity": 3031.2149467828403,
+      "bandwidth": 779.7152283389132,
+      "privacy_clearance": 1,
+      "trust_score": 0.579829658188445,
+      "energy_init": 7052.24796984965,
+      "power_comp": 2.360220311020348,
+      "power_comm": 3.118860913355653
+    },
+    "5": {
+      "cpu_speed": 131.47018417824418,
+      "memory_capacity": 2279.4038036595575,
+      "bandwidth": 586.3071990767513,
+      "privacy_clearance": 1,
+      "trust_score": 0.7113071990767512,
+      "energy_init": 9400.478596461104,
+      "power_comp": 2.6294036835648837,
+      "power_comm": 2.3452287963070053
+    },
+    "6": {
+      "cpu_speed": 116.38698749529453,
+      "memory_capacity": 3675.1228763618665,
+      "bandwidth": 543.2972725563134,
+      "privacy_clearance": 3,
+      "trust_score": 0.6389356708358209,
+      "energy_init": 11198.162235557647,
+      "power_comp": 2.3277397499058905,
+      "power_comm": 2.1731890902252533
+    },
+    "7": {
+      "cpu_speed": 121.99818251593344,
+      "memory_capacity": 2628.2139158481,
+      "bandwidth": 546.9778612394855,
+      "privacy_clearance": 0,
+      "trust_score": 0.6076568810537943,
+      "energy_init": 7531.445183168836,
+      "power_comp": 2.439963650318669,
+      "power_comm": 2.1879114449579418
+    },
+    "8": {
+      "cpu_speed": 132.6782068318595,
+      "memory_capacity": 3277.0306267141814,
+      "bandwidth": 643.1140457273502,
+      "privacy_clearance": 3,
+      "trust_score": 0.8817470645032619,
+      "energy_init": 6346.020131796619,
+      "power_comp": 2.6535641366371903,
+      "power_comm": 2.572456182909401
+    },
+    "9": {
+      "cpu_speed": 114.47000495196144,
+      "memory_capacity": 2513.0619924624125,
+      "bandwidth": 689.3198997472217,
+      "privacy_clearance": 3,
+      "trust_score": 0.5511051382599244,
+      "energy_init": 5486.886041766186,
+      "power_comp": 2.289400099039229,
+      "power_comm": 2.757279598988887
+    },
+    "10": {
+      "cpu_speed": 126.93380363141905,
+      "memory_capacity": 3233.000713376116,
+      "bandwidth": 397.91219182783107,
+      "privacy_clearance": 0,
+      "trust_score": 0.6899636503186687,
+      "energy_init": 9628.84322997397,
+      "power_comp": 2.5386760726283812,
+      "power_comm": 1.5916487673113242
+    },
+    "11": {
+      "cpu_speed": 131.8267085197173,
+      "memory_capacity": 3724.137661156326,
+      "bandwidth": 802.6588605075734,
+      "privacy_clearance": 3,
+      "trust_score": 0.6794896902423142,
+      "energy_init": 10411.478385520844,
+      "power_comp": 2.636534170394346,
+      "power_comm": 3.2106354420302936
+    },
+    "12": {
+      "cpu_speed": 122.00315562597915,
+      "memory_capacity": 2793.468029144762,
+      "bandwidth": 792.0552133203751,
+      "privacy_clearance": 3,
+      "trust_score": 0.6719778612394856,
+      "energy_init": 11896.550644625304,
+      "power_comp": 2.440063112519583,
+      "power_comm": 3.1682208532815004
+    },
+    "13": {
+      "cpu_speed": 121.75452417792206,
+      "memory_capacity": 2366.6373038501033,
+      "bandwidth": 508.48891102455667,
+      "privacy_clearance": 3,
+      "trust_score": 0.6322604336110065,
+      "energy_init": 10987.224047106029,
+      "power_comp": 2.4350904835584415,
+      "power_comm": 2.0339556440982265
+    },
+    "14": {
+      "cpu_speed": 127.72827514167471,
+      "memory_capacity": 2299.49263434667,
+      "bandwidth": 739.5633989751747,
+      "privacy_clearance": 3,
+      "trust_score": 0.5217252214615486,
+      "energy_init": 11065.385667286888,
+      "power_comp": 2.554565502833494,
+      "power_comm": 2.9582535959006986
+    }
+  }
+}
