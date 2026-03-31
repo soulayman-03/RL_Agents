@@ -27,9 +27,10 @@ class ResourceManager:
             # Last allocation failure info for debugging
             self.last_allocation_fail: Dict[str, object] = {}
 
-            # Security-level constraint: max fraction of an agent's model layers that can be exposed
-            # to a single device (per episode). Set to 1.0 to disable.
             self.max_exposure_fraction: float = 1.0
+            
+            # Security-level constraint: two successive layers shouldn't be handled by the same device
+            self.sequential_diversity: bool = True
              
             self.initialized = True
 
@@ -122,13 +123,14 @@ class ResourceManager:
         device = self.devices[device_id]
         
         # 0. Check Sequential Diversity (4.e)
-        if prev_device_id != -1 and device_id == prev_device_id:
-            self.last_allocation_fail = {
-                "reason": "sequential_diversity",
-                "device_id": device_id,
-                "prev_device_id": prev_device_id
-            }
-            return False
+        if getattr(self, "sequential_diversity", True):
+            if prev_device_id != -1 and device_id == prev_device_id:
+                self.last_allocation_fail = {
+                    "reason": "sequential_diversity",
+                    "device_id": device_id,
+                    "prev_device_id": prev_device_id
+                }
+                return False
             
         # 1. Check Privacy (4.f)
         if device.privacy_clearance < layer.privacy_level:

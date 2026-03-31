@@ -1,0 +1,84 @@
+{
+  "agent_id": 0,
+  "model_type": "vgg11",
+  "device_strategy": "Same Device (Device 0) for all layers",
+  "layers": [
+    {
+      "index": 0,
+      "name": "vgg11_L0",
+      "device": 0,
+      "t_comp": 0.2325,
+      "t_comm": 0.0058
+    },
+    {
+      "index": 1,
+      "name": "vgg11_L1",
+      "device": 0,
+      "t_comp": 0.3488,
+      "t_comm": 0.0
+    },
+    {
+      "index": 2,
+      "name": "vgg11_L2",
+      "device": 0,
+      "t_comp": 0.3876,
+      "t_comm": 0.0
+    },
+    {
+      "index": 3,
+      "name": "vgg11_L3",
+      "device": 0,
+      "t_comp": 0.3876,
+      "t_comm": 0.0
+    },
+    {
+      "index": 4,
+      "name": "vgg11_L4",
+      "device": 0,
+      "t_comp": 0.4651,
+      "t_comm": 0.0
+    },
+    {
+      "index": 5,
+      "name": "vgg11_L5",
+      "device": 0,
+      "t_comp": 0.4651,
+      "t_comm": 0.0
+    },
+    {
+      "index": 6,
+      "name": "vgg11_L6",
+      "device": 0,
+      "t_comp": 0.4651,
+      "t_comm": 0.0
+    },
+    {
+      "index": 7,
+      "name": "vgg11_L7",
+      "device": 0,
+      "t_comp": 0.4651,
+      "t_comm": 0.0
+    },
+    {
+      "index": 8,
+      "name": "vgg11_L8",
+      "device": 0,
+      "t_comp": 0.0078,
+      "t_comm": 0.0
+    },
+    {
+      "index": 9,
+      "name": "vgg11_L9",
+      "device": 0,
+      "t_comp": 0.2325,
+      "t_comm": 0.0
+    },
+    {
+      "index": 10,
+      "name": "vgg11_L10",
+      "device": 0,
+      "t_comp": 0.155,
+      "t_comm": 0.0
+    }
+  ]
+}
