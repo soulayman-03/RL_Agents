@@ -75,7 +75,7 @@ def _scenario_tag(model_types: list[str]) -> str:
 
 def _normalize_model_types(model_types: list[str] | None, num_agents: int) -> list[str]:
     if not model_types:
-        return ["resnet18", "vgg11", "deepcnn", "hugcnn", "miniresnet", "resnet18", "vgg11", "deepcnn", "hugcnn", "hugcnn"][:num_agents]
+        return ["hugcnn", "cnn15", "miniresnet", "resnet18", "vgg11", "lenet", "lenet"][:num_agents]
     mt = [str(m).strip() for m in model_types if str(m).strip()]
     if len(mt) == 1:
         return mt * num_agents
@@ -145,19 +145,19 @@ def train(
     eps_decay: float = 0.9999,
     eps_min: float = 0.01,
 ):
-    NUM_AGENTS = 10
-    NUM_DEVICES = 15
+    NUM_AGENTS = 7
+    NUM_DEVICES = 5
     EPISODES = int(episodes)
     MODEL_TYPES = _normalize_model_types(model_types, NUM_AGENTS)
 
     SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+    # Nom court pour éviter l'erreur 'MAX_PATH' (260 chars) sur Windows
+    prof_short = str(privacy_profile).replace("linear_front_loaded", "linFL")
     scenario = (
         _scenario_tag(MODEL_TYPES)
-        + f"_pmax{int(privacy_max_level)}_{str(privacy_profile)}"
-        + f"_tmin{float(trust_min_for_max_privacy):g}_hard"
-        + f"_t{float(trust_score_min):g}-{float(trust_score_max):g}"
-        + f"_e{float(energy_min):g}-{float(energy_max):g}_pc{float(base_power_comp):g}_pm{float(base_power_comm):g}"
-        + f"_ed{float(eps_decay):g}_em{float(eps_min):g}"
+        + f"_p{int(privacy_max_level)}_{prof_short}"
+        + f"_t{float(trust_min_for_max_privacy):g}"
+        + f"_e{float(energy_max/1000):g}k"
     )
     RESULTS_DIR = os.path.join(SCRIPT_DIR, "results", scenario, _sl_tag(float(sl)))
     SAVE_DIR = os.path.join(SCRIPT_DIR, "models", scenario, _sl_tag(float(sl)))
@@ -371,6 +371,8 @@ def train(
                     "trans_data":     float(info.get("trans_data", 0.0)),
                     "t_comp":         float(info.get("t_comp", 0.0)),
                     "t_comm":         float(info.get("t_comm", 0.0)),
+                    "t_comp_wait":    float(info.get("t_comp_wait", 0.0)),
+                    "t_comm_wait":    float(info.get("t_comm_wait", 0.0)),
                     "energy_cost":    float(info.get("energy_cost", 0.0)),
                     "energy_comp":    float(info.get("energy_comp", 0.0)),
                     "energy_comm":    float(info.get("energy_comm", 0.0)),
@@ -681,7 +683,7 @@ if __name__ == "__main__":
     parser.add_argument("--episodes", type=int, default=5000)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--sl", type=float, nargs="*", default=[1.0])
-    parser.add_argument("--models", type=str, nargs="+", default=["resnet18", "vgg11", "deepcnn", "hugcnn", "miniresnet", "resnet18", "vgg11", "deepcnn", "hugcnn", "hugcnn"])
+    parser.add_argument("--models", type=str, nargs="+", default=["hugcnn", "cnn15", "miniresnet", "resnet18", "vgg11", "deepcnn", "lenet"])
     parser.add_argument("--log-every", type=int, default=50)
     parser.add_argument("--log-trace", action="store_true")
     parser.add_argument("--trace-max-steps", type=int, default=200)
@@ -690,7 +692,7 @@ if __name__ == "__main__":
     parser.add_argument("--privacy-max-level", type=int, default=3)
     parser.add_argument("--privacy-profile", type=str, default="linear_front_loaded")
 
-    parser.add_argument("--trust-min-for-max-privacy", type=float, default=0.8)
+    parser.add_argument("--trust-min-for-max-privacy", type=float, default=0.7)
     parser.add_argument("--trust-score-min", type=float, default=0.5)
     parser.add_argument("--trust-score-max", type=float, default=1.0)
 

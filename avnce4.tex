@@ -1,0 +1,676 @@
+\documentclass[10pt,aspectratio=169]{beamer}
+
+\usetheme{default}
+\usecolortheme{seahorse}   % ou beaver, dove, ... au choix
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{booktabs}
+\usepackage{emoji}
+
+\title{L'énergie dans l'apprentissage par renforcement \\ pour réseaux IoT contraints}
+\subtitle{La double casquette : objectif \textbf{ET} contrainte}
+\author{
+\begin{tabular}{c}
+\textbf{Réalisé par :} \\ 
+SOULAIMANE AIT AHMED OULHAJ \\[0.5cm]
+\textbf{Encadré par :} \\ 
+Dr. DRISS AIT OMAR
+\end{tabular}
+}
+\date{\today}
+
+\begin{document}
+
+% -------------------------------------------------------------------------
+\begin{frame}
+\titlepage
+\end{frame}
+
+% -------------------------------------------------------------------------
+\begin{frame}{Plan de la présentation}
+\tableofcontents[sectionstyle=show/shaded]
+\end{frame}
+
+% -------------------------------------------------------------------------
+\section{Contexte : Pourquoi l'énergie est critique ?}
+
+\begin{frame}{Contexte : Pourquoi l'énergie est critique ?}
+
+Les réseaux IoT sont fortement contraints par les ressources énergétiques.
+
+\begin{block}{Problème}
+Si certains appareils épuisent rapidement leur batterie, certaines tâches ne pourront plus être exécutées.
+\end{block}
+
+\begin{alertblock}{Objectif}
+Concevoir un système intelligent capable de :
+\begin{itemize}
+    \item Réduire la consommation énergétique
+    \item Garantir l'exécution des tâches
+\end{itemize}
+\end{alertblock}
+\end{frame}
+
+% Slide : Latence totale
+\begin{frame}{Latence totale (Temps d'exécution et Congestion)}
+\frametitle{Latence totale (Temps d'exécution et Congestion)}
+
+Latence totale = \textbf{Temps de service pur} (calcul \& transmission) + \alert{\textbf{Délai d'attente (Queuing Delay)}}
+
+\bigskip
+
+\begin{columns}[T]  % T = aligner en haut
+\begin{column}{0.50\textwidth}
+
+\begin{block}{Temps de calcul perçu}
+\[
+T_{\text{calc}}^{r,l,j} = \sum_{p=1}^{P_{l-1}} A^j_{r,l,p} \cdot \frac{c^{l,p}_r}{e(j)} + \alert{W_{\text{comp}}^j}
+\]
+\end{block}
+
+\begin{itemize}
+\item $c^{l,p}_r$ \quad demande de calcul (cycles CPU / FLOPs)
+\item $e(j)$ \quad efficacité de la ressource $j$
+\item $\alert{W_{\text{comp}}^j}$ \, \textbf{Délai d'attente} si le processeur $j$ est surchargé par d'autres agents.
+\end{itemize}
+
+\end{column}
+
+\begin{column}{0.48\textwidth}
+
+\begin{block}{Temps de transmission perçu}
+\[
+T_{\text{trans}}^{r,l,i,j} = \sum_{p=1}^{P_{l-1}} A^i_{r,{l-1},p} \cdot A^j_{r,l,p} \cdot \frac{O^{r,l-1}_{i,j}}{\rho_i} \cdot \mathbf{1}_{i \neq j} + \alert{W_{\text{comm}}^j}
+\]
+\end{block}
+
+\begin{itemize}
+\item $O^{r,l-1}_{i,j}$ \quad volume de données à transmettre
+\item $\rho_i$ \quad bande passante de l'appareil $i$
+\item $\alert{W_{\text{comm}}^j}$ \, \textbf{Délai d'encombrement réseau} (bande passante saturée simultanément).
+\end{itemize}
+
+\end{column}
+\end{columns}
+
+\end{frame}
+
+
+% Slide : Explication du Queuing Delay (Load Balancing)
+\begin{frame}{Modélisation du réseau : Pourquoi intégrer les files d'attente ?}
+
+\begin{columns}[T]
+\begin{column}{0.49\textwidth}
+\begin{block}{1. Environnement Idéal (Goulots ignorés)}
+\begin{itemize}
+    \item Capacité de traitement concurrente infinie implicite.
+    \item Les agents exploitent le terminal le plus performant \textbf{sans subir de pénalité} de surcharge.
+    \item \textbf{Résultat} : Déséquilibre extrême (un seul terminal de confiance puissant écope de tout le réseau).
+\end{itemize}
+\end{block}
+\end{column}
+
+\begin{column}{0.49\textwidth}
+\begin{block}{2. Mode avec Queuing Delay (Réaliste)}
+\begin{itemize}
+    \item Traitement séquentiel (file FIFO) par appareil.
+    \item \textbf{Congestion :} Si 5 tâches visent le même terminal, 4 patientent ($\uparrow W_{\text{comp}}$).
+    \item \textbf{Load Balancing :} Les agents évitent les nœuds saturés pour minimiser la latence perçue et leur surconsommation ($E \propto T_{wait}$).
+\end{itemize}
+\end{block}
+\end{column}
+\end{columns}
+
+\bigskip
+\begin{alertblock}{Validation de notre approche MADDPG}
+C'est avec la contrainte dynamique de congestion (Queuing Delay) que nous démontrons que nos agents apprennent d'eux-mêmes à \textbf{coopérer pour équilibrer la charge} (Load Balancing) sur tout le maillage IoT !
+\end{alertblock}
+
+\end{frame}
+
+% Slide : Modèle d'énergie
+\begin{frame}{Énergie dans la réalité : mesure et intégration}
+\begin{block}{Formule générale}
+    L'énergie consommée pendant une tâche est :
+    \begin{equation*}
+        E = P \cdot T
+    \end{equation*}
+    \begin{itemize}
+        \item $P$ : puissance instantanée du dispositif, $T$ : durée totale d'exécution
+        \item \textbf{Conclusion :} Plus le temps est long, plus l'énergie consommée est élevée.
+    \end{itemize}
+\end{block}
+
+\centering
+      \large\textbf{Énergie totale}
+      \[
+      E_{\text{total}} = E^{\text{calc}}_{\text{total}} + E^{\text{trans}}_{\text{total}} = P_i^{\text{comp}} \times T_{\text{calc}} + P_i^{\text{tx}} \times T_{\text{trans}} 
+      \]
+
+\begin{columns}[T]
+    \begin{column}{0.50\textwidth}
+        \centering
+        \textbf{Énergie de calcul}
+        \[
+        E^{\text{calc}}_{\text{total}} = \sum_{i,r,l} A^i_{r,l} \, P_i^{\text{comp}} \, \frac{c^l_r}{e(i)}
+        \]
+
+        \centering
+        \textbf{Énergie de transmission}
+        \[
+        E^{\text{trans}}_{\text{total}} = \sum_{i,j,r,l} A^i_{r,l} A^j_{r,l+1} P_i^{\text{tx}} \frac{O^l_r}{\rho_i} \mathbf{1}_{i\neq j}
+        \]
+    \end{column}
+    
+    \begin{column}{0.50\textwidth}
+        \centering
+        \textbf{Énergie de transmission}
+        \[
+        E^{\text{trans}}_{\text{total}} = \sum_{i,j,r,l} A^i_{r,l} A^j_{r,l+1} P_i^{\text{tx}} \frac{O^l_r}{\rho_i} \mathbf{1}_{i\neq j}
+        \]
+    \end{column}
+\end{columns}
+
+\end{frame}
+
+%=========================================================================
+\section{Deux rôles différents de l’énergie}
+
+\begin{frame}{Cœur conceptuel de notre approche}
+\centering
+\Huge L'énergie joue deux rôles bien distincts
+
+\bigskip
+
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+    \textbf{Objectif d’optimisation} 
+    \vspace{0.2cm}
+    \\ (le ``quoi'')
+    \vspace{0.2cm}
+    \normalsize
+    \begin{itemize}
+        \item ce que l’IA essaie d’optimiser
+        \item Rôle de l’énergie : Économie
+    \end{itemize}
+\end{column}
+\begin{column}{0.48\textwidth}
+    \textbf{Contrainte physique} 
+    \vspace{0.2cm}
+    \\ (le ``comment'')
+    \vspace{0.2cm}
+    \normalsize
+    \begin{itemize}
+        \item ce qui limite / interdit certaines actions
+        \item Rôle de l’énergie : Sécurité
+    \end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+% -------------------------------------------------------------------------
+\begin{frame}{1. Énergie dans la fonction de récompense}
+\frametitle{1. Énergie comme terme dans le reward}
+
+\textbf{Objectif} : contraindre les agents à trouver des stratégies qui soient \textbf{à la fois rapides} et \textbf{très économes en énergie}, afin de maximiser la durée de vie des batteries des objets IoT.
+
+Reward typique :
+\[ r = -( \text{latence} + \text{énergie consommée}) \]
+
+\begin{itemize}
+    \item Pousse l’agent à choisir l’option \alert{la plus économe} parmi les solutions valides
+\end{itemize}
+
+\bigskip
+\centering
+\textbf{Message à l’agent} : « Même si la batterie est quasi-pleine, encouragé à choisir l'option la plus économe. »
+\end{frame}
+
+% -------------------------------------------------------------------------
+\begin{frame}{2. Énergie comme contrainte dure (Hard Constraint)}
+\frametitle{2. Énergie comme contrainte dure}
+
+\begin{block}{Règle de survie}
+Avant chaque action :
+
+\[ \text{batterie\_restante} < \text{coût\_énergie\_tâche} \quad \Longrightarrow \quad \text{échec immédiat} \]
+\end{block}
+
+\bigskip
+Conséquences :
+\begin{itemize}
+    \item Pénalité très forte si violation : \alert{$-500$}
+    \item L’agent apprend très vite que certains nœuds deviennent \alert{interdits}
+\end{itemize}
+\end{frame}
+
+% -------------------------------------------------------------------------
+\begin{frame}{En résumé – la double casquette}
+\centering
+\Large
+\begin{tabular}{c}
+\alert{Contrainte} $\quad\Longrightarrow\quad$ \textbf{empêche de dépasser le budget } \\[0.8em]
+\alert{Objectif}   $\quad\Longrightarrow\quad$ \textbf{consommer le strict minimum}
+\end{tabular}
+
+\\[1.2em]
+\large$\Downarrow$ \\[0.6em]
+\centering
+{Cette combinaison qui permet à notre système de garantir que les tâches seront terminées (Contrainte) tout en étant le plus performant possible (Objectif).}
+
+
+\bigskip
+\Large Garantir la \alert{faisabilité} \quad ET \quad maximiser la \alert{performance globale}
+\end{frame}
+
+\section{Results}
+% --------------------------------------
+\begin{frame}{Ce que les agents apprennent}
+\begin{block}{Politique apprise par chaque agent (par modèle)}
+    \begin{itemize}
+        \item Décider le \alert{splitting} : quelle couche → quel dispositif
+        \item Respecter :
+        \begin{itemize}
+            \item Privacy + trust hard constraint
+            \item Limites CPU / Mémoire / Bande passante
+            \item Budget énergie du dispositif
+        \end{itemize}
+        \item Minimiser : \alert{latence + énergie}
+    \end{itemize}
+\end{block}
+
+\end{frame}
+
+% --------------------------------------
+\begin{frame}{Experience 1, 3 agent et 5 devices}
+\begin{columns}
+    \begin{column}{0.60\textwidth}
+        \begin{itemize}
+    \item \textbf{Algorithme} : MADDPG (Multi-Agent DDPG)
+    \item \textbf{Objectif} : minimiser latence + énergie
+    \item \textbf{Nombre d'agents} : 3 (un par modèle)
+    \item \textbf{Nombre de dispositifs} : 5
+    \item \textbf{Modèles} : hugcnn (10 couches), cnn15 (15 couches), miniresnet (5 couches)
+    \item \textbf{Épisodes} : 5000
+\end{itemize}
+    \end{column}
+    \begin{column}{0.38\textwidth}
+        Ensemble des métriques analysées
+        \begin{itemize}
+            \item Récompenses cumulatives moyennes
+            \item Losses Actor \& Critic
+            \item Récompenses par agent (3 modèles)
+            \item Taux de succès par agent
+        \end{itemize}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Récompenses Cumulatives Moyennes — Exp. 3 agents}
+
+\begin{columns}[T]
+
+% ------------------- COLONNE GAUCHE -------------------
+\column{0.48\textwidth}
+
+\begin{block}{Observations clés}
+    \begin{itemize}
+        \item Moyenne stabilisée très près de \alert{0} ($\approx -2$ à $-5$) dès le début
+        \item Seulement \alert{4 chutes ponctuelles} : épisodes $\sim 50$, $\sim 600$, $\sim 2000$, $\sim 3350$
+    \end{itemize}
+\end{block}
+
+\vspace{0.3cm}
+
+\begin{alertblock}{Performance globale}
+\begin{itemize}
+    \item     Les agents minimisent quasi-parfaitement $T_{\text{total}} + E_{\text{total}}$ dès les premiers épisodes
+    \item C'est le signe d'une politique très solide.
+
+\end{itemize}
+\end{alertblock}
+
+% ------------------- COLONNE DROITE -------------------
+\column{0.50\textwidth}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{avance4/images/LatencyEnergySum/avg_cumulative_rewards.png}
+\end{figure}
+
+\end{columns}
+
+\end{frame}
+
+\begin{frame}{2. Objectifs et formules des deux réseaux en DDPG / MADDPG}
+\begin{columns}[T]
+% ------------------- COLONNE GAUCHE : ACTOR -------------------
+\column{0.48\textwidth}
+\begin{block}{Objectif de l'Actor (Policy Network)}
+    \textbf{Maximiser} la Q-value estimée par le Critic\\
+    $\Rightarrow$ Trouver la meilleure action possible dans chaque état,  
+\end{block}
+
+\smallskip
+L'Actor apprend la \textbf{politique} déterministe optimale $\pi(s)$.
+
+\begin{equation*}
+    \mathcal{L}_{\text{actor}} = - \mathbb{E} \left[ Q(s, \pi(s)) \right]
+\end{equation*}
+\vspace{0.3cm}
+\begin{itemize}
+    \item Si $Q(s, a)$ s'améliore (moins négatif) → loss Actor \textbf{se stabilise}
+\end{itemize}
+
+% ------------------- COLONNE DROITE : CRITIC -------------------
+\column{0.48\textwidth}
+\begin{block}{Objectif du Critic (Q-Network)}
+    \textbf{Minimiser} l'erreur de prédiction de la Q-value\\
+\end{block}
+
+\smallskip
+Le Critic \textbf{évalue} la politique actuelle à l'aide de la fonction de valeur $Q$.
+
+\begin{equation*}
+    \mathcal{L}_{\text{critic}} = \mathbb{E} \Bigl[ \bigl( y - Q(s, a) \bigr)^2 \Bigr]
+\end{equation*}
+\begin{itemize}
+    \item $y$ = cible (Bellman) : reward immédiat + valeur future estimée
+\end{itemize}
+\end{columns}
+\end{frame}
+
+% --------------------------------------
+\begin{frame}{Pourquoi la Critic Loss converge-t-elle proprement ?}
+\begin{block}{Évolution du Critic — expérience 3 agents}
+    \begin{itemize}
+        \item Début : Critic démarre à $\approx 0.6$
+        \item Les agents réussissent quasi-immédiatement → rewards stables et proches de 0
+    \end{itemize}
+\end{block}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.70\linewidth]{avance4/images/LatencyEnergySum/critic.png}
+\end{figure}
+
+\begin{alertblock}{Résultat}
+    Le Critic devient un \alert{expert en succès} : il prédit précisément
+    des Q-values proches de 0, reflet d'une politique quasi-optimale
+\end{alertblock}
+\end{frame}
+
+% --------------------------------------
+\begin{frame}{Mécanique de la stabilisation de la loss Actor}
+\begin{block}{Séquence observée dans cette expérience (3 agents)}
+    \begin{enumerate}
+        \item Début : Critic naïf → prédit Q $\approx$ 0
+              → Actor Loss $\approx$ 0.3
+        \item Agents réussissent rapidement → rewards proches de 0 (très faibles pénalités)
+        \item Critic apprend ces bonnes valeurs → Q(s, a) reste proche de 0
+              (ex. $-2$ à $-5$)
+        \item Actor Loss = $-Q$ → monte puis se \textbf{stabilise à $\approx 1.8$}
+              avec très faible variance
+    \end{enumerate}
+\end{block}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.70\linewidth]{avance4/images/LatencyEnergySum/actor.png}
+\end{figure}
+
+\centering
+{\Large \alert{La loss Actor se stabilise car le Critic converge vers de bonnes Q-values}}
+\end{frame}
+
+% --------------------------------------
+\begin{frame}{3 \& 4. Récompenses et Taux de Succès Par Agent}
+
+\begin{columns}[T]
+
+% ------------------- COLONNE GAUCHE -------------------
+\column{0.48\textwidth}
+
+\begin{block}{Récompenses par agent}
+\scriptsize
+\begin{tabular}{llp{3cm}}
+\toprule
+\textbf{Ag.} & \textbf{Modèle} & \textbf{Comportement} \\
+\midrule
+0   & hugcnn            & Très bon, chute profonde \\
+1,2 & cnn15, miniresnet & Excellent, très stable \\
+\bottomrule
+\end{tabular}
+\end{block}
+
+\vspace{0.1cm}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{avance4/images/LatencyEnergySum/training_agent_rewards.png}
+\end{figure}
+
+% ------------------- COLONNE DROITE -------------------
+\column{0.48\textwidth}
+
+\begin{block}{Taux de succès par agent}
+\scriptsize
+\begin{itemize}
+    \item Agents 1 \& 2 : \alert{$\sim$100\%} dès épisode 1
+    \item Agent 0 : $\sim$100\%, légères chutes aux 4 épisodes problématiques
+\end{itemize}
+\end{block}
+
+\vspace{0.1cm}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{avance4/images/LatencyEnergySum/training_agent_success_rate.png}
+\end{figure}
+
+\end{columns}
+
+\vspace{0.1cm}
+
+\begin{alertblock}{Conclusion}
+    \textbf{Convergence quasi-identique} des 3 agents — politiques valides dès les premiers épisodes.
+\end{alertblock}
+
+\end{frame}
+
+% --------------------------------------
+\begin{frame}{Experience 2, 7 agent et 5 devices}
+\begin{itemize}
+        \item \textbf{Algorithme} : MADDPG (Multi-Agent DDPG)
+        \item \textbf{Objectif} : minimiser latence + énergie
+        \item \textbf{Nombre d'agents} : 7 (un par modèle)
+        \item \textbf{Nombre de dispositifs} : 5
+        \item \textbf{Modèles} : hugcnn (10 couches), cnn15 (15 couches), miniresnet (5 couches), resnet18 (18 layers), vgg11 (11 layers), lenet (5 layers), lenet (5 layers).
+        \item \textbf{Épisodes} : 5000
+\end{itemize}
+\end{frame}
+
+% --------------------------------------
+\begin{frame}{1. Récompenses Cumulatives Moyennes}
+    \begin{columns}
+                \begin{column}{0.50\textwidth}
+            \begin{block}{Évolution}
+                \begin{itemize}
+                    \item Départ : \alert{∼ -220} (variance très élevée, pics à -450)
+                    \item Fin (ép. 4000–5000) : \alert{∼ -170 à -180}
+                    \item Tendance haussière → amélioration réelle
+                \end{itemize}
+            \end{block}
+                        
+            \begin{alertblock}{Interprétation}
+                \begin{itemize}
+                    \item Agents apprennent collectivement à réduire latence + énergie
+                    \item Environnement très contraint (trust hard) → reward difficile
+                \end{itemize}
+            \end{alertblock}
+        \end{column}
+        \begin{column}{0.50\textwidth}
+            \begin{figure}
+                \centering
+                \includegraphics[width=0.98\linewidth]{avance4/images/LargeEnv/avg_cumulative_rewards.png}
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% --------------------------------------
+\begin{frame}{3. Récompenses par Agent – Performances}
+    \centering
+    \begin{alertblock}{Problème critique}
+            Agents 3 (resnet18) et 4 (vgg11) \alert{n'apprennent pas du tout} \\
+            → Stagnation très basse sur 5000 épisodes
+    \end{alertblock}
+        \small
+        \begin{tabular}{l l l l}
+        \toprule
+        Agent & Modèle       & Reward final & Comportement \\
+        \midrule
+        2, 5     & miniresnet, deepcnn   & \approx -20        & \textcolor{mygreen}{\textbf{Meilleur}} \\
+        1,    & cnn15        & variable     & Bon mais instable \\
+        0, 6     & hugcnn, lenet       & -50 à -400   & instable \\
+        3, 4     & resnet18, vgg11     & \approx -400       & \textcolor{myred}{\textbf{Échec}} \\
+        \bottomrule
+        \end{tabular}
+
+\begin{figure} 
+    \centering
+    \includegraphics[width=0.75\linewidth]{avance4/images/LargeEnv/training_agent_rewards.png}
+\end{figure}
+\end{frame}
+
+% --------------------------------------
+\begin{frame}{Causes probables des échecs \& Recommandations}
+\begin{itemize}
+    \item \alert{Trust hard constraint} systématiquement violée
+    \begin{alertblock}{Dispositifs critiques}
+    Seuls \alert{Device 0 (trust 0.838)} et \alert{Device 1 (0.946)} peuvent gérer les couches avec privacy=3 \\
+    \item Pression énorme sur ces deux devices → surcharge → violations la contraint de trust score
+    \end{alertblock}
+    \item Demande de calcul / mémoire trop élevée
+          → violations la contraint de memoire et capacty de calcul
+\end{itemize}
+
+\bigskip
+
+\begin{center}
+    {\Large \alert{Modèles lourds = gros handicap dans cet environnement}}
+\end{center}
+
+\textbf{Recommandations possibles} :
+\begin{itemize}
+    \item Augmenter caracter des devices (cpu\_speed, memory\_capacity, trust\_score), ou ajouter devices
+    \item Augmenter exploration (noise, entropy bonus)
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Expérience 3 : 7 agents – 5 devices – Ressources boostées}
+    \begin{block}{Paramètres clés}
+        \begin{tabular}{l l}
+            \toprule
+            Paramètre              & Valeur                          \\
+            \midrule
+            Algorithme             & MADDPG                          \\
+            Nombre d’agents        & 7 (un agent par modèle)         \\
+            Nombre de dispositifs  & 5                               \\
+            Épisodes d'entraînement& 8000 épisodes, $\varepsilon_{min}=0.01$ \\
+            Particularité          & \textbf{Ressources des devices ×2} \\
+            \bottomrule
+        \end{tabular}
+    \end{block}
+
+    \vspace{0.4cm}
+    \begin{itemize}
+        \item Objectif : Évaluer l'impact d'une augmentation significative des capacités matérielles des devices sur :
+        \begin{itemize}
+            \item la convergence de MADDPG
+            \item la qualité des politiques coopératives
+            \item le partage des tâches / offloading
+            \item les récompenses globales obtenues
+        \end{itemize}
+    \end{itemize}
+
+\end{frame}
+
+% --------------------------------------
+\begin{frame}{Récompenses Cumulatives — Exp. 2}
+\begin{itemize}
+    \item Départ identique à $\approx -80$, amélioration progressive vers $\approx -10$ (épisode 2000)
+    \item Stabilisation autour de \alert{$-8$ à $-10$} jusqu'à l'épisode 8000
+\end{itemize}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.75\linewidth]{avance4/images/highEnv8000/avg_cumulative_rewards.png}
+\end{figure}
+\end{frame}
+
+% --------------------------------------
+\begin{frame}{Policy \& Value Losses — Exp. 2}
+\begin{columns}[T]
+\column{0.48\textwidth}
+\begin{block}{Actor Loss}
+    \begin{enumerate}
+        \item $0 \to 6\,000$ updates : pic $\approx 29$
+        \item $6\,000 \to 60\,000$ : descente vers $\approx 5$
+        \item $60\,000 \to 150\,000$ : convergence vers \alert{$\approx 2$}
+    \end{enumerate}
+\end{block}
+\vspace{0.2cm}
+150\,000 updates atteints $\Rightarrow$ convergence plus complète
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.98\linewidth]{avance4/images/highEnv8000/actor.png}
+\end{figure}
+
+\column{0.48\textwidth}
+\begin{block}{Critic Loss}
+    \begin{itemize}
+        \item Pic initial identique ($\approx 2\,400$)
+        \item Descente régulière vers \alert{$\approx 0$} à $\sim 130\,000$ updates
+        \item Bien plus propre qu'à 5\,000 épisodes (stagnait à $\sim 50$)
+    \end{itemize}
+\end{block}
+\vspace{0.2cm}
+Le Critic a eu le temps de \alert{vraiment converger}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.98\linewidth]{avance4/images/highEnv8000/critic.png}
+\end{figure}
+
+\end{columns}
+\end{frame}
+
+% --------------------------------------
+\begin{frame}{Résultats Par Agent — Exp. 2}
+\begin{center}
+\begin{tabular}{llccc}
+\hline
+\textbf{Agent} & \textbf{Modèle} & \textbf{Reward} & \textbf{Succès} \\
+\hline
+0, 1, 5, 6 & hugcnn, lent, cnn15, deepcnn     & $\approx -2$  & \alert{100\%} \\
+2 & miniresnet & $\approx 0$   & \alert{100\%} \\
+3 & resnet18   & $\approx -20$ & \alert{96\%} \\
+4 & vgg11      & $\approx -10$ & \alert{98\%} \\
+\hline
+\end{tabular}
+\end{center}
+\begin{alertblock}{Transformation majeure resnet18 : $0\% \to 96\%$, vgg11 : $0\% \to 98\%$}
+    \begin{figure}
+    \centering
+    \includegraphics[width=0.75\linewidth]{avance4/images/highEnv8000/training_agent_rewards.png}
+\end{figure}
+\end{alertblock}
+\end{frame}
+
+\end{document}
