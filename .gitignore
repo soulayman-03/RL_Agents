@@ -2,6 +2,11 @@
 __pycache__/
 *.pyc
 
+# .gitignore
+.env
+.env.local
+.env.*.local
+
 # Models / weights
 *.pth
 *.pt

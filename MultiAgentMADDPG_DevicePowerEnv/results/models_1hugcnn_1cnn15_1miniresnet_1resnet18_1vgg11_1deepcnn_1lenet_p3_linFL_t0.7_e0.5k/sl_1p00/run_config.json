@@ -1,0 +1,38 @@
+{
+  "algorithm": "MADDPG",
+  "variant": "LatencyEnergySum",
+  "episodes": 5000,
+  "seed": 42,
+  "sl": 1.0,
+  "num_agents": 7,
+  "num_devices": 5,
+  "models": [
+    "hugcnn",
+    "cnn15",
+    "miniresnet",
+    "resnet18",
+    "vgg11",
+    "deepcnn",
+    "lenet"
+  ],
+  "scenario": "models_1hugcnn_1cnn15_1miniresnet_1resnet18_1vgg11_1deepcnn_1lenet_p3_linFL_t0.7_e0.5k",
+  "queue_per_device": true,
+  "privacy_max_level": 3,
+  "privacy_profile": "linear_front_loaded",
+  "trust_min_for_max_privacy": 0.7,
+  "trust_hard": true,
+  "trust_score_range": [
+    0.5,
+    1.0
+  ],
+  "energy_budget_range": [
+    200.0,
+    500.0
+  ],
+  "base_power_comp": 1.0,
+  "base_power_comm": 1.0,
+  "base_cpu_speed": 50.0,
+  "base_bandwidth": 250.0,
+  "eps_decay": 0.9999,
+  "eps_min": 0.05
+}
