@@ -1,0 +1,14 @@
+\babel@toc {french}{}\relax 
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {2.1}{\ignorespaces Architecture de l’Edge Computing}}{10}{}%
+\contentsline {figure}{\numberline {2.2}{\ignorespaces Avantages de l’Edge Computing}}{11}{}%
+\contentsline {figure}{\numberline {2.3}{\ignorespaces Architecture à trois niveaux du computation offloading (Edge Devices, Edge Nodes, Cloud)}}{12}{}%
+\contentsline {figure}{\numberline {2.4}{\ignorespaces Interaction entre l'agent et son environnement}}{14}{}%
+\contentsline {figure}{\numberline {2.5}{\ignorespaces Architecture du Deep Q-Network (DQN)}}{16}{}%
+\contentsline {figure}{\numberline {2.6}{\ignorespaces Architecture CTDE : entraînement centralisé avec partage de paramètres et buffer global, suivi d’une exécution décentralisée.}}{20}{}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {3.1}{\ignorespaces Architecture du système de computation offloading dans un environnement IoT distribué. Les dispositifs IoT jouent un double rôle : agents générant les tâches (sources de données) et nœuds de calcul contraints participant à l’exécution distribuée des modèles de Deep Learning.}}{24}{}%
+\contentsline {figure}{\numberline {3.2}{\ignorespaces Modélisation d’une tâche de Deep Learning comme une séquence de sous-tâches (couches).}}{25}{}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }

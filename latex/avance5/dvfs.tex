@@ -1,0 +1,389 @@
+\documentclass[10pt,aspectratio=169]{beamer}
+
+\usetheme{default}
+\usecolortheme{seahorse}   % ou beaver, dove, ... au choix
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{booktabs}
+\usepackage{emoji}
+
+\title{Modèle Énergétique DVFS}
+\author{
+\begin{tabular}{c}
+\textbf{Réalisé par :} \\ 
+SOULAIMANE AIT AHMED OULHAJ \\[0.5cm]
+\textbf{Encadré par :} \\ 
+Dr. DRISS AIT OMAR
+\end{tabular}
+}
+\date{\today}
+
+\begin{document}
+
+% -------------------------------------------------------------------------
+\begin{frame}
+\titlepage
+\end{frame}
+
+\begin{frame}{Énergie dans la réalité : mesure et intégration}
+\begin{block}{Formule générale}
+    L'énergie consommée pendant une tâche est :
+    \begin{equation*}
+        E = P \cdot T
+    \end{equation*}
+    \begin{itemize}
+        \item La relation est une simplification du modèle général 
+        \textbf{$E = \int P(t)\,dt$}, valable uniquement lorsque la puissance est constante.
+    \end{itemize}
+\end{block}
+
+\centering
+      \large\textbf{Énergie totale}
+      \[
+      E_{\text{total}} = E^{\text{calc}}_{\text{total}} + E^{\text{trans}}_{\text{total}} = P_i^{\text{comp}} \times T_{\text{calc}} + P_i^{\text{tx}} \times T_{\text{trans}} 
+      \]
+
+\begin{columns}[T]
+    \begin{column}{0.50\textwidth}
+        \centering
+        \textbf{Énergie de calcul}
+        \[
+        E^{\text{calc}}_{\text{total}} = \sum_{i,r,l} A^i_{r,l} \, P_i^{\text{comp}} \, \frac{c^l_r}{e(i)}
+        \]
+    \end{column}
+    
+    \begin{column}{0.50\textwidth}
+        \centering
+        \textbf{Énergie de transmission}
+        \[
+        E^{\text{trans}}_{\text{total}} = \sum_{i,j,r,l} A^i_{r,l} A^j_{r,l+1} P_i^{\text{tx}} \frac{O^l_r}{\rho_i} \mathbf{1}_{i\neq j}
+        \]
+    \end{column}
+\end{columns}
+
+\end{frame}
+%------------------------------------------------
+\begin{frame}{Qu'est-ce que le DVFS ?}
+\textbf{DVFS (Dynamic Voltage and Frequency Scaling)} est une technique permettant d'adapter dynamiquement :
+
+\begin{itemize}
+\item la fréquence du CPU
+\item la tension d'alimentation
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Principe :}
+\begin{itemize}
+\item Fréquence élevée $\rightarrow$ énergie très élevée $\rightarrow$ latence faible 
+\item Fréquence faible $\rightarrow$ énergie faible $\rightarrow$ latence élevée 
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Utilisation :}
+\begin{itemize}
+\item Smartphones
+\item Edge Computing
+\item IoT
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}{Modèle de Puissance DVFS}
+
+La puissance dynamique du CPU est donnée par :
+
+\begin{equation}
+P = \kappa \cdot V^2 \cdot f \quad \text{avec} \quad \kappa = A \cdot C
+\end{equation}
+
+où :
+\begin{itemize}
+    \item (A) représente l’activité, c’est-à-dire le nombre de transistors actifs lors de l’exécution,
+    \item (C) est la capacité de commutation liée au matériel,
+    \item (V) est la tension d’alimentation du processeur,
+    \item (f) est la fréquence du CPU.
+\end{itemize}
+\vspace{0.3cm}
+
+En pratique, utilisons la approximation :
+
+\begin{equation}
+V \approx f
+\end{equation}
+
+Pour : Simplifier le modèle.
+\vspace{0.3cm}
+
+Donc :
+
+\begin{equation}
+P = \kappa \cdot f^3
+\end{equation}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}{Comparaison avec Modèle Linéaire}
+\begin{itemize}
+\item Modèle simple :
+\begin{equation}
+P_{comp} = \text{BasePower\_Comp} \times \left(\frac{\text{CPU\_Speed}}{\text{BaseCPU\_Speed}}\right) \quad \Rightarrow \quad P \propto f
+\end{equation}
+
+\item Modèle DVFS :
+\begin{equation}
+P = \kappa \cdot f^3
+\end{equation}
+
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Implication :}
+\begin{itemize}
+\item Dans le modèle simple, les agents privilégient toujours une fréquence élevée car l’énergie reste quasi constante
+\item Dans le modèle DVFS, les agents doivent arbitrer entre rapidité et économie d’énergie
+\end{itemize}
+
+\end{frame}
+
+
+
+%------------------------------------------------
+\begin{frame}{Modèle de Latence}
+
+\textbf{Latence de Calcul :}
+
+\begin{equation}
+T_{\text{calc}}^{r,l,j} = \sum_{p=1}^{P_{l-1}} A^j_{r,l,p} \cdot \frac{c^{l,p}_r}{e(j)} + W_{\text{comp}}^j \quad \text{avec} \quad e(j) = F_m \cdot v 
+\end{equation}
+\begin{itemize}
+\item $c^{l,p}_r$ : demande de calcul, \quad e(j) C'est la fréquence réelle et effective utilisée à l'instant T
+\item $F_m$ : fréquence maximale du CPU
+\item $v$ : ratio DVFS (apprend meilleur valeur par contexte)
+\item $W_{comp}^m$ : attente CPU
+\end{itemize}
+
+\vspace{0.1cm}
+
+\textbf{Latence de Transmission :}
+
+\begin{equation}
+T_{\text{trans}}^{r,l,i,j} =
+\displaystyle
+\sum_{p=1}^{P_{l-1}} 
+A^i_{r,l-1,p} \cdot A^j_{r,l,p} \cdot 
+\frac{O^{r,l-1}_{i,j}}{\rho_i} + W_{comm}^m \quad si \quad \mathbf{device_i} \neq \mathbf{device_j}
+\end{equation}
+\begin{itemize}
+\item $O^{r,l-1}_{i,j}$ \quad taille des données à transférer (output de la couche précédente)
+\item $\rho_i$ \quad débit uplink de l'appareil $i$ (bit/s)
+\item $W_{comm}^m$ : attente réseau
+\end{itemize}
+
+\end{frame}
+%------------------------------------------------
+\begin{frame}{Modèle Énergétique}
+
+\textbf{Énergie de Calcul :}
+
+\begin{equation}
+E_{comp} = P \cdot T_{comp} = (\kappa \cdot f^3) \cdot T_{comp}
+\end{equation}
+
+\begin{itemize}
+\item $\kappa$ : constante matérielle (capacité, activité, etc.)
+\item $f$ = $f_m \cdot v$ : fréquence du CPU
+\item $T_{comp}$ : temps de calcul
+\end{itemize}
+
+\textbf{Conclusion :}
+\begin{itemize}
+\item L'énergie augmente quadratiquement avec la fréquence
+\item Il existe un compromis performance / énergie
+\end{itemize}
+
+\vspace{0.2cm}
+
+\textbf{Énergie de Transmission :}
+
+\begin{equation}
+E_{comm} = P_{comm}^m \cdot T_{comm}
+\end{equation}
+
+\begin{itemize}
+\item $P_{comm}^m$ : puissance réseau
+\item $T_{comm}$ : latence de transmission
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}{Conclusion}
+
+\begin{itemize}
+\item Le DVFS est un modèle réaliste pour la consommation CPU
+\item Il capture le compromis énergie / performance (énergie vs latence)
+\item Adapté pour Reinforcement Learning
+\end{itemize}
+
+\end{frame}
+
+\section{Comparaison}
+\begin{frame}{Comparaison Énergie Totale — Observation}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\linewidth]{avance5/comp/comp_total_energy.png}
+\end{figure}
+
+\centering
+\textbf{Baseline : consommation basse et constante ($\sim 40$ J) \& DVFS : très élevée au début}
+\end{frame}
+
+\begin{frame}{Comparaison Énergie Totale}
+\begin{columns}
+    \begin{column}{0.48\textwidth}
+        \begin{figure}
+            \centering
+            \includegraphics[width=0.98\linewidth]{avance5/DevicePowerEnv/total_energy_consumption.png}
+        \end{figure}
+        \textbf{Réduction modérée de l'énergie (~15\%)}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+        \begin{figure}
+            \centering
+            \includegraphics[width=0.98\linewidth]{avance5/dvfs/total_energy_consumption.png}
+        \end{figure}
+        \textbf{Réduction massive de l'énergie (>55\%)}
+    \end{column}
+\end{columns}
+\end{frame}
+\begin{frame}{Comparaison Latence Totale — Observation}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\linewidth]{avance5/comp/comp_global_latency.png}
+\end{figure}
+
+\centering
+Baseline : latence faible ($\sim 14.5$ s) \& DVFS : latence élevée ($\sim 28$ s).
+
+\end{frame}
+
+\begin{frame}{Délai — Observation}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\linewidth]{avance5/comp/comp_queuing_delay.png}
+\end{figure}
+
+\centering
+Baseline : Temp d'attent de 6 vers $\sim 3$s \& DVFS : de 8 vers $\sim 6$s.
+
+\end{frame}
+
+\begin{frame}{Compromis Énergie-Latence — Interprétation}
+
+\begin{alertblock}{Résultat clé}
+\centering
+\textbf{Trade-off fondamental imposé par la physique}
+\end{alertblock}
+
+\vspace{0.3cm}
+
+\begin{block}{Interprétation}
+\begin{itemize}
+    \item Réduction fréquence CPU → tâches plus lentes au meme temp reduire l'énergie consommée
+    \item Choix optimal appris :
+    \begin{itemize}
+        \item Survivre (énergie) > rapidité (latence)
+    \end{itemize}
+    \item Compromis inévitable dans systèmes réels
+\end{itemize}
+\end{block}
+
+\end{frame}
+
+\begin{frame}{Récompenses d'Équipe — Observation}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\linewidth]{avance5/comp/comp_rewards.png}
+\end{figure}
+
+DVFS : pénalités initiales très élevées ($\sim -3000$) apres Amélioration progressive → $\sim -700$
+
+\end{frame}
+
+\begin{frame}{Succès — Observation}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\linewidth]{avance5/comp/comp_success_rate.png}
+\end{figure}
+
+\end{frame}
+
+\begin{frame}{Survie Batterie — Observation}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\linewidth]{avance5/comp/comp_battery_survival.png}
+\end{figure}
+
+\end{frame}
+
+\begin{frame}{Succès \& Batterie — Interprétation}
+
+\begin{block}{Interprétation}
+\begin{itemize}
+    \item Modèle DVFS ($P \propto f^3$) impose des contraintes sévères
+    \item Exécution à pleine fréquence → échec (batterie vide)
+    \item Les agents apprennent à \textbf{adapter leur vitesse}
+    \item Passage de 0\% à $\sim$100\% de succès
+\end{itemize}
+\end{block}
+
+\begin{alertblock}{Contribution principale}
+\centering
+\textbf{Intégration d’un modèle énergétique réaliste change radicalement le comportement appris}
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{Conclusion Générale}
+
+\begin{block}{Insights clés}
+\begin{itemize}
+    \item Baseline : optimisation facile mais irréaliste
+    \item DVFS : environnement contraint → apprentissage complexe
+    \item Découverte d’un \textbf{trade-off énergie-latence}
+    \item Les agents apprennent à \textbf{survivre avant d’optimiser}
+    \item Résultat : système réaliste mais avec compromis
+\end{itemize}
+\end{block}
+
+\begin{alertblock}{Fonction de récompense}
+\centering
+$R = -(\alpha E + \beta T)$
+\end{alertblock}
+
+\vspace{0.2cm}
+
+\begin{block}{Rôle de $\alpha$ et $\beta$ : Contrôlent le compromis \textbf{énergie vs latence}}
+\begin{itemize}
+    \item $\alpha > \beta$ : politique \textbf{low-power} (énergie ↓, latence ↑)
+    \item $\beta > \alpha$ : politique \textbf{low-latency} (latence ↓, énergie ↑)
+    \item Guident la stratégie optimale apprise par les agents RL
+\end{itemize}
+\end{block}
+\end{frame}
+
+\end{document}

@@ -1,0 +1,480 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.3 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \datalist[entry]{nty/global//global/global/global}
+    \entry{mecsurvey}{article}{}{}
+      \name{author}{1}{}{%
+        {{hash=fd71c3872ce570ec1d80f140a1bad118}{%
+           family={Ahmed},
+           familyi={A\bibinitperiod},
+           given={Arif},
+           giveni={A\bibinitperiod}}}%
+      }
+      \strng{namehash}{fd71c3872ce570ec1d80f140a1bad118}
+      \strng{fullhash}{fd71c3872ce570ec1d80f140a1bad118}
+      \strng{fullhashraw}{fd71c3872ce570ec1d80f140a1bad118}
+      \strng{bibnamehash}{fd71c3872ce570ec1d80f140a1bad118}
+      \strng{authorbibnamehash}{fd71c3872ce570ec1d80f140a1bad118}
+      \strng{authornamehash}{fd71c3872ce570ec1d80f140a1bad118}
+      \strng{authorfullhash}{fd71c3872ce570ec1d80f140a1bad118}
+      \strng{authorfullhashraw}{fd71c3872ce570ec1d80f140a1bad118}
+      \field{sortinit}{A}
+      \field{sortinithash}{2f401846e2029bad6b3ecc16d50031e2}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{IEEE}
+      \field{title}{A Survey on Mobile Edge Computing}
+      \field{year}{2016}
+    \endentry
+    \entry{albrecht2024marl}{book}{}{}
+      \name{author}{1}{}{%
+        {{hash=b2ee352c63c03824fe37cc1e31b6445b}{%
+           family={Albrecht},
+           familyi={A\bibinitperiod},
+           given={Stefano},
+           giveni={S\bibinitperiod}}}%
+      }
+      \strng{namehash}{b2ee352c63c03824fe37cc1e31b6445b}
+      \strng{fullhash}{b2ee352c63c03824fe37cc1e31b6445b}
+      \strng{fullhashraw}{b2ee352c63c03824fe37cc1e31b6445b}
+      \strng{bibnamehash}{b2ee352c63c03824fe37cc1e31b6445b}
+      \strng{authorbibnamehash}{b2ee352c63c03824fe37cc1e31b6445b}
+      \strng{authornamehash}{b2ee352c63c03824fe37cc1e31b6445b}
+      \strng{authorfullhash}{b2ee352c63c03824fe37cc1e31b6445b}
+      \strng{authorfullhashraw}{b2ee352c63c03824fe37cc1e31b6445b}
+      \field{sortinit}{A}
+      \field{sortinithash}{2f401846e2029bad6b3ecc16d50031e2}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Multi-Agent Reinforcement Learning}
+      \field{year}{2024}
+    \endentry
+    \entry{baccour2024}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{1}{}{%
+        {{hash=a2c47a16a70b100b2a5206a7bc33b32f}{%
+           family={Baccour},
+           familyi={B\bibinitperiod},
+           given={Emna},
+           giveni={E\bibinitperiod}}}%
+      }
+      \strng{namehash}{7849f2b4cd74331fdf3b01291f03f7db}
+      \strng{fullhash}{7849f2b4cd74331fdf3b01291f03f7db}
+      \strng{fullhashraw}{7849f2b4cd74331fdf3b01291f03f7db}
+      \strng{bibnamehash}{7849f2b4cd74331fdf3b01291f03f7db}
+      \strng{authorbibnamehash}{7849f2b4cd74331fdf3b01291f03f7db}
+      \strng{authornamehash}{7849f2b4cd74331fdf3b01291f03f7db}
+      \strng{authorfullhash}{7849f2b4cd74331fdf3b01291f03f7db}
+      \strng{authorfullhashraw}{7849f2b4cd74331fdf3b01291f03f7db}
+      \field{sortinit}{B}
+      \field{sortinithash}{d7095fff47cda75ca2589920aae98399}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of Network and Computer Applications}
+      \field{title}{Multi-agent reinforcement learning for privacy-aware distributed CNN}
+      \field{year}{2024}
+    \endentry
+    \entry{rlpdnn2021}{article}{}{}
+      \name{author}{1}{}{%
+        {{hash=a2c47a16a70b100b2a5206a7bc33b32f}{%
+           family={Baccour},
+           familyi={B\bibinitperiod},
+           given={Emna},
+           giveni={E\bibinitperiod}}}%
+      }
+      \strng{namehash}{a2c47a16a70b100b2a5206a7bc33b32f}
+      \strng{fullhash}{a2c47a16a70b100b2a5206a7bc33b32f}
+      \strng{fullhashraw}{a2c47a16a70b100b2a5206a7bc33b32f}
+      \strng{bibnamehash}{a2c47a16a70b100b2a5206a7bc33b32f}
+      \strng{authorbibnamehash}{a2c47a16a70b100b2a5206a7bc33b32f}
+      \strng{authornamehash}{a2c47a16a70b100b2a5206a7bc33b32f}
+      \strng{authorfullhash}{a2c47a16a70b100b2a5206a7bc33b32f}
+      \strng{authorfullhashraw}{a2c47a16a70b100b2a5206a7bc33b32f}
+      \field{sortinit}{B}
+      \field{sortinithash}{d7095fff47cda75ca2589920aae98399}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{IEEE Access}
+      \field{title}{RL-PDNN: Reinforcement Learning for Privacy-Aware Distributed Neural Networks}
+      \field{year}{2021}
+    \endentry
+    \entry{offloading_general}{article}{}{}
+      \field{sortinit}{C}
+      \field{sortinithash}{4d103a86280481745c9c897c925753c0}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{IEEE / Survey}
+      \field{title}{Computation Offloading Overview}
+      \field{year}{2023}
+    \endentry
+    \entry{marl_resource2025}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{1}{}{%
+        {{hash=7dd0312481ca5b0da666b09c0729502f}{%
+           family={Hady},
+           familyi={H\bibinitperiod},
+           given={M.A.},
+           giveni={M\bibinitperiod}}}%
+      }
+      \strng{namehash}{cc13dd6e5d1041806acc3bde27cb3ac4}
+      \strng{fullhash}{cc13dd6e5d1041806acc3bde27cb3ac4}
+      \strng{fullhashraw}{cc13dd6e5d1041806acc3bde27cb3ac4}
+      \strng{bibnamehash}{cc13dd6e5d1041806acc3bde27cb3ac4}
+      \strng{authorbibnamehash}{cc13dd6e5d1041806acc3bde27cb3ac4}
+      \strng{authornamehash}{cc13dd6e5d1041806acc3bde27cb3ac4}
+      \strng{authorfullhash}{cc13dd6e5d1041806acc3bde27cb3ac4}
+      \strng{authorfullhashraw}{cc13dd6e5d1041806acc3bde27cb3ac4}
+      \field{sortinit}{H}
+      \field{sortinithash}{23a3aa7c24e56cfa16945d55545109b5}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Artificial Intelligence Review}
+      \field{title}{Multi-agent reinforcement learning for resources allocation optimization: a survey}
+      \field{year}{2025}
+    \endentry
+    \entry{kang2017neurosurgeon}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{1}{}{%
+        {{hash=7893be1b3a157ba4a0ab698cf2b2f5e2}{%
+           family={Kang},
+           familyi={K\bibinitperiod},
+           given={Y.},
+           giveni={Y\bibinitperiod}}}%
+      }
+      \strng{namehash}{8f9149d4c853ac4524fb1fc6b32dd692}
+      \strng{fullhash}{8f9149d4c853ac4524fb1fc6b32dd692}
+      \strng{fullhashraw}{8f9149d4c853ac4524fb1fc6b32dd692}
+      \strng{bibnamehash}{8f9149d4c853ac4524fb1fc6b32dd692}
+      \strng{authorbibnamehash}{8f9149d4c853ac4524fb1fc6b32dd692}
+      \strng{authornamehash}{8f9149d4c853ac4524fb1fc6b32dd692}
+      \strng{authorfullhash}{8f9149d4c853ac4524fb1fc6b32dd692}
+      \strng{authorfullhashraw}{8f9149d4c853ac4524fb1fc6b32dd692}
+      \field{sortinit}{K}
+      \field{sortinithash}{c02bf6bff1c488450c352b40f5d853ab}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{ACM SIGOPS}
+      \field{title}{Neurosurgeon: Collaborative intelligence between the cloud and mobile edge}
+      \field{year}{2017}
+    \endentry
+    \entry{lesueur2010dvfs}{inproceedings}{}{}
+      \name{author}{2}{}{%
+        {{hash=45fa1387e629609b590b2a588f707f8f}{%
+           family={Le\bibnamedelima Sueur},
+           familyi={L\bibinitperiod\bibinitdelim S\bibinitperiod},
+           given={Etienne},
+           giveni={E\bibinitperiod}}}%
+        {{hash=22cbcffae9ccc9f40eba5c2eda212e66}{%
+           family={Heiser},
+           familyi={H\bibinitperiod},
+           given={Gernot},
+           giveni={G\bibinitperiod}}}%
+      }
+      \strng{namehash}{164b509f8108b2a552a1f704f3103927}
+      \strng{fullhash}{164b509f8108b2a552a1f704f3103927}
+      \strng{fullhashraw}{164b509f8108b2a552a1f704f3103927}
+      \strng{bibnamehash}{164b509f8108b2a552a1f704f3103927}
+      \strng{authorbibnamehash}{164b509f8108b2a552a1f704f3103927}
+      \strng{authornamehash}{164b509f8108b2a552a1f704f3103927}
+      \strng{authorfullhash}{164b509f8108b2a552a1f704f3103927}
+      \strng{authorfullhashraw}{164b509f8108b2a552a1f704f3103927}
+      \field{sortinit}{L}
+      \field{sortinithash}{7c47d417cecb1f4bd38d1825c427a61a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Proceedings of the 2010 International Conference on Power Aware Computing and Systems}
+      \field{title}{Dynamic Voltage and Frequency Scaling: The Laws of Diminishing Returns}
+      \field{year}{2010}
+    \endentry
+    \entry{li2018mec}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{1}{}{%
+        {{hash=66d548e0e670e107fc4a80dc0c3825b3}{%
+           family={Li},
+           familyi={L\bibinitperiod},
+           given={Y.},
+           giveni={Y\bibinitperiod}}}%
+      }
+      \strng{namehash}{2f060ecac11058276f5d0b5a813eee70}
+      \strng{fullhash}{2f060ecac11058276f5d0b5a813eee70}
+      \strng{fullhashraw}{2f060ecac11058276f5d0b5a813eee70}
+      \strng{bibnamehash}{2f060ecac11058276f5d0b5a813eee70}
+      \strng{authorbibnamehash}{2f060ecac11058276f5d0b5a813eee70}
+      \strng{authornamehash}{2f060ecac11058276f5d0b5a813eee70}
+      \strng{authorfullhash}{2f060ecac11058276f5d0b5a813eee70}
+      \strng{authorfullhashraw}{2f060ecac11058276f5d0b5a813eee70}
+      \field{sortinit}{L}
+      \field{sortinithash}{7c47d417cecb1f4bd38d1825c427a61a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{IEEE Transactions}
+      \field{title}{Learning-based computation offloading for MEC}
+      \field{year}{2018}
+    \endentry
+    \entry{lin2020}{article}{}{}
+      \name{author}{4}{}{%
+        {{hash=84e9edb45602671fc0899e2c5a23f482}{%
+           family={Lin},
+           familyi={L\bibinitperiod},
+           given={Li},
+           giveni={L\bibinitperiod}}}%
+        {{hash=2bd0d901f9d5e4ea6bf06771cfeb7a4d}{%
+           family={Liao},
+           familyi={L\bibinitperiod},
+           given={Xiaofei},
+           giveni={X\bibinitperiod}}}%
+        {{hash=c358204b5c649d29bcb0ba18cea44777}{%
+           family={Jin},
+           familyi={J\bibinitperiod},
+           given={Hai},
+           giveni={H\bibinitperiod}}}%
+        {{hash=24bece773e8873ff8f03d9a3eced56df}{%
+           family={Li},
+           familyi={L\bibinitperiod},
+           given={Peng},
+           giveni={P\bibinitperiod}}}%
+      }
+      \strng{namehash}{c000891a846969ac9c8fb3b47b180bdc}
+      \strng{fullhash}{ad7c4d7c30f05d350d9035c22f6fa6fe}
+      \strng{fullhashraw}{ad7c4d7c30f05d350d9035c22f6fa6fe}
+      \strng{bibnamehash}{c000891a846969ac9c8fb3b47b180bdc}
+      \strng{authorbibnamehash}{c000891a846969ac9c8fb3b47b180bdc}
+      \strng{authornamehash}{c000891a846969ac9c8fb3b47b180bdc}
+      \strng{authorfullhash}{ad7c4d7c30f05d350d9035c22f6fa6fe}
+      \strng{authorfullhashraw}{ad7c4d7c30f05d350d9035c22f6fa6fe}
+      \field{sortinit}{L}
+      \field{sortinithash}{7c47d417cecb1f4bd38d1825c427a61a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Proceedings of the IEEE}
+      \field{title}{Computation Offloading Toward Edge Computing}
+      \field{year}{2019}
+    \endentry
+    \entry{liu2020marl}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{1}{}{%
+        {{hash=4b44bba1743c2ad874f7d960887af663}{%
+           family={Liu},
+           familyi={L\bibinitperiod},
+           given={X.},
+           giveni={X\bibinitperiod}}}%
+      }
+      \strng{namehash}{1f76401e7dbc86cd82b589641bfa5ec6}
+      \strng{fullhash}{1f76401e7dbc86cd82b589641bfa5ec6}
+      \strng{fullhashraw}{1f76401e7dbc86cd82b589641bfa5ec6}
+      \strng{bibnamehash}{1f76401e7dbc86cd82b589641bfa5ec6}
+      \strng{authorbibnamehash}{1f76401e7dbc86cd82b589641bfa5ec6}
+      \strng{authornamehash}{1f76401e7dbc86cd82b589641bfa5ec6}
+      \strng{authorfullhash}{1f76401e7dbc86cd82b589641bfa5ec6}
+      \strng{authorfullhashraw}{1f76401e7dbc86cd82b589641bfa5ec6}
+      \field{sortinit}{L}
+      \field{sortinithash}{7c47d417cecb1f4bd38d1825c427a61a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{China Communications}
+      \field{number}{9}
+      \field{title}{Multi-agent reinforcement learning for resource allocation in IoT networks with edge computing}
+      \field{volume}{17}
+      \field{year}{2020}
+      \field{pages}{220\bibrangedash 236}
+      \range{pages}{17}
+    \endentry
+    \entry{mi2024}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{1}{}{%
+        {{hash=9a41bbb4e9d955542dfc899bc29a2aed}{%
+           family={Mi},
+           familyi={M\bibinitperiod},
+           given={Xin},
+           giveni={X\bibinitperiod}}}%
+      }
+      \strng{namehash}{0ff38d5da91508507adc663fc7061bf7}
+      \strng{fullhash}{0ff38d5da91508507adc663fc7061bf7}
+      \strng{fullhashraw}{0ff38d5da91508507adc663fc7061bf7}
+      \strng{bibnamehash}{0ff38d5da91508507adc663fc7061bf7}
+      \strng{authorbibnamehash}{0ff38d5da91508507adc663fc7061bf7}
+      \strng{authornamehash}{0ff38d5da91508507adc663fc7061bf7}
+      \strng{authorfullhash}{0ff38d5da91508507adc663fc7061bf7}
+      \strng{authorfullhashraw}{0ff38d5da91508507adc663fc7061bf7}
+      \field{sortinit}{M}
+      \field{sortinithash}{4625c616857f13d17ce56f7d4f97d451}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Sensors}
+      \field{title}{Multi-Agent RL Algorithm for Dynamic Task Offloading}
+      \field{year}{2024}
+    \endentry
+    \entry{mnih2015}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{1}{}{%
+        {{hash=f7d23cfe4ca0e6bf7a8c251bfa78aca6}{%
+           family={Mnih},
+           familyi={M\bibinitperiod},
+           given={Volodymyr},
+           giveni={V\bibinitperiod}}}%
+      }
+      \strng{namehash}{aff24b211b34cdd515b2fd148ce0c920}
+      \strng{fullhash}{aff24b211b34cdd515b2fd148ce0c920}
+      \strng{fullhashraw}{aff24b211b34cdd515b2fd148ce0c920}
+      \strng{bibnamehash}{aff24b211b34cdd515b2fd148ce0c920}
+      \strng{authorbibnamehash}{aff24b211b34cdd515b2fd148ce0c920}
+      \strng{authornamehash}{aff24b211b34cdd515b2fd148ce0c920}
+      \strng{authorfullhash}{aff24b211b34cdd515b2fd148ce0c920}
+      \strng{authorfullhashraw}{aff24b211b34cdd515b2fd148ce0c920}
+      \field{sortinit}{M}
+      \field{sortinithash}{4625c616857f13d17ce56f7d4f97d451}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Nature}
+      \field{title}{Human-level control through deep reinforcement learning}
+      \field{year}{2015}
+    \endentry
+    \entry{suleiman_dvfs}{article}{}{}
+      \name{author}{3}{}{%
+        {{hash=866b4192ca8ce2870d2f7b317a61ca61}{%
+           family={Suleiman},
+           familyi={S\bibinitperiod},
+           given={Diary\bibnamedelima R.},
+           giveni={D\bibinitperiod\bibinitdelim R\bibinitperiod}}}%
+        {{hash=3a5c2f379f69a8bcb83fe8185390a97a}{%
+           family={Ibrahim},
+           familyi={I\bibinitperiod},
+           given={Muhammed\bibnamedelima A.},
+           giveni={M\bibinitperiod\bibinitdelim A\bibinitperiod}}}%
+        {{hash=3559aa4f1d4bfb55035eee77fa1be291}{%
+           family={Hamarash},
+           familyi={H\bibinitperiod},
+           given={Ibrahim\bibnamedelima I.},
+           giveni={I\bibinitperiod\bibinitdelim I\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {Erbil, Iraq}%
+      }
+      \strng{namehash}{6a951475e5e3b6c3084773fd079bfb1e}
+      \strng{fullhash}{6a951475e5e3b6c3084773fd079bfb1e}
+      \strng{fullhashraw}{6a951475e5e3b6c3084773fd079bfb1e}
+      \strng{bibnamehash}{6a951475e5e3b6c3084773fd079bfb1e}
+      \strng{authorbibnamehash}{6a951475e5e3b6c3084773fd079bfb1e}
+      \strng{authornamehash}{6a951475e5e3b6c3084773fd079bfb1e}
+      \strng{authorfullhash}{6a951475e5e3b6c3084773fd079bfb1e}
+      \strng{authorfullhashraw}{6a951475e5e3b6c3084773fd079bfb1e}
+      \field{sortinit}{S}
+      \field{sortinithash}{b164b07b29984b41daf1e85279fbc5ab}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{University of Salahaddin-Hawler, College of Engineering}
+      \field{title}{Dynamic Voltage Frequency Scaling (DVFS) for Microprocessors Power and Energy Reduction}
+    \endentry
+    \entry{sutton2018}{book}{}{}
+      \name{author}{2}{}{%
+        {{hash=eb920e5277d3d5fd0903f3cd41e11871}{%
+           family={Sutton},
+           familyi={S\bibinitperiod},
+           given={Richard\bibnamedelima S.},
+           giveni={R\bibinitperiod\bibinitdelim S\bibinitperiod}}}%
+        {{hash=32a0a208f8bcf56a13b0a8e618aa806a}{%
+           family={Barto},
+           familyi={B\bibinitperiod},
+           given={Andrew\bibnamedelima G.},
+           giveni={A\bibinitperiod\bibinitdelim G\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {MIT Press}%
+      }
+      \strng{namehash}{c6212f1a1407d96a3d9f4fefbb07eade}
+      \strng{fullhash}{c6212f1a1407d96a3d9f4fefbb07eade}
+      \strng{fullhashraw}{c6212f1a1407d96a3d9f4fefbb07eade}
+      \strng{bibnamehash}{c6212f1a1407d96a3d9f4fefbb07eade}
+      \strng{authorbibnamehash}{c6212f1a1407d96a3d9f4fefbb07eade}
+      \strng{authornamehash}{c6212f1a1407d96a3d9f4fefbb07eade}
+      \strng{authorfullhash}{c6212f1a1407d96a3d9f4fefbb07eade}
+      \strng{authorfullhashraw}{c6212f1a1407d96a3d9f4fefbb07eade}
+      \field{sortinit}{S}
+      \field{sortinithash}{b164b07b29984b41daf1e85279fbc5ab}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Reinforcement Learning: An Introduction}
+      \field{year}{2018}
+    \endentry
+    \entry{wu2005dvfs}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{1}{}{%
+        {{hash=33d49ceda32feca0867fd357debb0b46}{%
+           family={Wu},
+           familyi={W\bibinitperiod},
+           given={Qiang},
+           giveni={Q\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {IEEE}%
+      }
+      \strng{namehash}{9e208206fea70e2c000cab988ba8276a}
+      \strng{fullhash}{9e208206fea70e2c000cab988ba8276a}
+      \strng{fullhashraw}{9e208206fea70e2c000cab988ba8276a}
+      \strng{bibnamehash}{9e208206fea70e2c000cab988ba8276a}
+      \strng{authorbibnamehash}{9e208206fea70e2c000cab988ba8276a}
+      \strng{authornamehash}{9e208206fea70e2c000cab988ba8276a}
+      \strng{authorfullhash}{9e208206fea70e2c000cab988ba8276a}
+      \strng{authorfullhashraw}{9e208206fea70e2c000cab988ba8276a}
+      \field{sortinit}{W}
+      \field{sortinithash}{4315d78024d0cea9b57a0c6f0e35ed0d}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{IEEE Transactions}
+      \field{title}{Dynamic Voltage and Frequency Scaling for Embedded Processors Considering Power and Performance}
+      \field{year}{2005}
+    \endentry
+    \entry{zhang2021marl}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{1}{}{%
+        {{hash=accfaf086a407bfb746d7875478d9130}{%
+           family={Zhang},
+           familyi={Z\bibinitperiod},
+           given={Kai},
+           giveni={K\bibinitperiod}}}%
+      }
+      \strng{namehash}{f84f8a717f92d391f50ada63543df446}
+      \strng{fullhash}{f84f8a717f92d391f50ada63543df446}
+      \strng{fullhashraw}{f84f8a717f92d391f50ada63543df446}
+      \strng{bibnamehash}{f84f8a717f92d391f50ada63543df446}
+      \strng{authorbibnamehash}{f84f8a717f92d391f50ada63543df446}
+      \strng{authornamehash}{f84f8a717f92d391f50ada63543df446}
+      \strng{authorfullhash}{f84f8a717f92d391f50ada63543df446}
+      \strng{authorfullhashraw}{f84f8a717f92d391f50ada63543df446}
+      \field{sortinit}{Z}
+      \field{sortinithash}{96892c0b0a36bb8557c40c49813d48b3}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{IEEE Transactions}
+      \field{title}{Multi-Agent Reinforcement Learning: A Selective Overview}
+      \field{year}{2021}
+    \endentry
+  \enddatalist
+\endrefsection
+\endinput
+

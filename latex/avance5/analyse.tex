@@ -1,0 +1,227 @@
+\documentclass{beamer}
+
+\usepackage{amsmath}
+\usepackage{graphicx}
+
+\title{Optimisation Énergie–Latence avec MADDPG et DVFS}
+\author{Ton Nom}
+\date{\today}
+
+\begin{document}
+
+%------------------------------------------------
+\begin{frame}
+\titlepage
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}{Configuration de l’Environnement}
+
+\begin{itemize}
+\item Algorithme : MADDPG
+\item Nombre d'agents : 7
+\item Nombre de devices : 5
+\item Episodes : 5000
+\item DVFS : $v \in {1.0,;0.75,;0.5}$
+\item CPU base : 50
+\item Bandwidth : 250
+\item Power (base) : 1 W
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}{Objectif du Système}
+
+Minimiser une fonction combinée :
+
+\begin{equation}
+R = -(\alpha E + \beta T)
+\end{equation}
+
+\begin{itemize}
+\item $E$ : énergie totale
+\item $T$ : latence totale
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}{Expérience 1 : Modèle Simple}
+
+\begin{itemize}
+\item Modèle énergétique :
+\begin{equation}
+E = P \cdot T
+\end{equation}
+
+\item Hypothèse :
+\begin{equation}
+P \propto f
+\end{equation}
+
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Résultat :}
+\begin{itemize}
+\item Réduction modérée de l'énergie (~15\%)
+\item Latence stable ou améliorée
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}{Expérience 2 : DVFS Physique}
+
+\begin{itemize}
+\item Modèle énergétique réaliste :
+\begin{equation}
+P \propto f^3
+\end{equation}
+
+\item Énergie :
+\begin{equation}
+E = \kappa f^3 T
+\end{equation}
+
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Résultat :}
+\begin{itemize}
+\item Réduction massive de l'énergie (\prop 55\%)
+\item Augmentation de la latence
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}{Résultats : Énergie Totale}
+
+\begin{center}
+\includegraphics[width=0.8\linewidth]{total_energy_consumption.png}
+\end{center}
+
+\begin{itemize}
+\item 1550 J → 650 J
+\item Optimisation énergétique majeure
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}{Résultats : Latence}
+
+\begin{center}
+\includegraphics[width=0.8\linewidth]{global_latency.png}
+\end{center}
+
+\begin{itemize}
+\item Augmentation : 22 s → 28 s
+\item Impact du DVFS sur performance
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}{Résultats : Queuing Delay}
+
+\begin{center}
+\includegraphics[width=0.8\linewidth]{queuing_delay_evolution.png}
+\end{center}
+
+\begin{itemize}
+\item Augmentation initiale
+\item Stabilisation à ~6 s
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}{Résultats : Énergie par Device}
+
+\begin{center}
+\includegraphics[width=0.8\linewidth]{device_energy_evolution.png}
+\end{center}
+
+\begin{itemize}
+\item Tous les devices réduisent leur consommation
+\item Politique globale : low-power
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}{Comparaison des Deux Expériences}
+
+\begin{tabular}{|c|c|c|}
+\hline
+& Modèle Simple & DVFS Physique \
+\hline
+Énergie & ↓ faible & ↓↓↓ très forte \
+Latence & stable & ↑ \
+Comportement & équilibré & low-power \
+\hline
+\end{tabular}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}{Interprétation}
+
+\begin{itemize}
+\item DVFS introduit un coût non linéaire ($f^3$)
+\item Les agents apprennent :
+\begin{itemize}
+\item réduire fréquence CPU
+\item accepter une latence plus élevée
+\end{itemize}
+\item Découverte automatique du compromis énergie-latence
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}{Conclusion}
+
+\begin{itemize}
+\item Le modèle physique change la stratégie optimale
+\item MADDPG exploite le trade-off énergie–latence
+\item Importance d’un modèle réaliste pour des décisions pertinentes
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}{Conclusion : Rôle de $\alpha$ et $\beta$}
+
+\textbf{Fonction de récompense :}
+\begin{equation}
+R = -(\alpha E + \beta T)
+\end{equation}
+
+\textbf{Rôle principal :}
+\begin{itemize}
+\item Permet de contrôler le compromis énergie--latence
+\item Normalise les différences d’échelle entre $E$ et $T$
+\end{itemize}
+
+\textbf{Impact sur le comportement :}
+\begin{itemize}
+\item $\alpha > \beta$ : politique \textbf{low-power} (énergie ↓, latence ↑)
+\item $\beta > \alpha$ : politique \textbf{low-latency} (latence ↓, énergie ↑)
+\end{itemize}
+
+\textbf{Insight clé :}
+\begin{itemize}
+\item Les coefficients $\alpha$ et $\beta$ guident l’agent RL dans la prise de décision
+\item Ils déterminent la stratégie optimale apprise
+\end{itemize}
+
+\end{frame}
+%------------------------------------------------
+
+\end{document}

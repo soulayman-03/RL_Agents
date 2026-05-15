@@ -144,6 +144,8 @@ def train(
     base_bandwidth: float = 250.0,
     eps_decay: float = 0.9999,
     eps_min: float = 0.01,
+    alpha: float = 1.0,
+    beta: float = 1.0,
 ):
     NUM_AGENTS = 7
     NUM_DEVICES = 5
@@ -158,6 +160,7 @@ def train(
         + f"_p{int(privacy_max_level)}_{prof_short}"
         + f"_t{float(trust_min_for_max_privacy):g}"
         + f"_e{float(energy_max/1000):g}k"
+        + f"_a{float(alpha):g}_b{float(beta):g}"
     )
     RESULTS_DIR = os.path.join(SCRIPT_DIR, "results", scenario, _sl_tag(float(sl)))
     SAVE_DIR = os.path.join(SCRIPT_DIR, "models", scenario, _sl_tag(float(sl)))
@@ -182,6 +185,8 @@ def train(
         base_power_comm=float(base_power_comm),
         base_cpu_speed=float(base_cpu_speed),
         base_bandwidth=float(base_bandwidth),
+        alpha=float(alpha),
+        beta=float(beta),
     )
 
     manager = MADDPGManager(
@@ -704,6 +709,8 @@ if __name__ == "__main__":
     parser.add_argument("--base-bandwidth", type=float, default=250.0, help="Baseline bandwidth for normalisation")
     parser.add_argument("--eps-decay", type=float, default=0.9999)
     parser.add_argument("--eps-min", type=float, default=0.05)
+    parser.add_argument("--alpha", type=float, default=1.0, help="Weight for latency in reward")
+    parser.add_argument("--beta", type=float, default=1.0, help="Weight for energy in reward")
     args = parser.parse_args()
 
     sl_val = args.sl[0] if (args.sl and len(args.sl) > 0) else 1.0
@@ -729,5 +736,7 @@ if __name__ == "__main__":
             base_bandwidth=float(args.base_bandwidth),
             eps_decay=float(args.eps_decay),
             eps_min=float(args.eps_min),
+            alpha=float(args.alpha),
+            beta=float(args.beta),
     )
 

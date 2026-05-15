@@ -68,13 +68,15 @@ class MultiAgentIoTEnvLatencyEnergySum(gym.Env):
         trust_min_for_max_privacy: float = 0.8,
         # trust_hard is now always True for this environment
         # Energy — device-specific power (Watts)
-        energy_budget_range: tuple[float, float] = (1000.0, 5000.0),
+        energy_budget_range: tuple[float, float] = (200.0, 500.0),
         # Base power consumption reference values (Watts).
         # Each device will scale these by its own hardware characteristics.
         base_power_comp: float = 1.0,   # Reference Watts for a baseline-speed CPU
         base_power_comm: float = 1.0,   # Reference Watts for a baseline-speed link
         base_cpu_speed: float = 50.0,   # Baseline cpu_speed used for normalisation
         base_bandwidth: float = 250.0,  # Baseline bandwidth used for normalisation
+        alpha: float = 1.0,             # Latency weight (alpha)
+        beta: float = 1.0,              # Energy weight (beta)
     ):
         super().__init__()
         self.num_agents = int(num_agents)
@@ -99,10 +101,19 @@ class MultiAgentIoTEnvLatencyEnergySum(gym.Env):
         self.trust_hard = True # Strictly hard constraint
 
         self.energy_budget_range = (float(energy_budget_range[0]), float(energy_budget_range[1]))
+        # Store base parameters from arguments
         self.base_power_comp = float(base_power_comp)
         self.base_power_comm = float(base_power_comm)
-        self.base_cpu_speed  = float(base_cpu_speed)
-        self.base_bandwidth  = float(base_bandwidth)
+        self.base_cpu_speed = float(base_cpu_speed)
+        self.base_bandwidth = float(base_bandwidth)
+        # Updated scaling: increase base power for more variance
+        self.base_power_comp *= 2.0  # increase base computation power
+        self.base_power_comm *= 2.0  # increase base communication power
+        # Scaling exponent to amplify differences in hardware speed and bandwidth
+        self.power_exponent = 1.2
+
+        self.alpha = float(alpha)
+        self.beta = float(beta)
 
         if model_types is None:
             self.model_types = ["lenet"] * self.num_agents
@@ -189,8 +200,9 @@ class MultiAgentIoTEnvLatencyEnergySum(gym.Env):
           power_comm_i = base_power_comm * (bandwidth_i  / base_bandwidth)
         """
         for d in getattr(self.resource_manager, "devices", {}).values():
-            d.power_comp = float(self.base_power_comp) * (float(d.cpu_speed)  / float(self.base_cpu_speed))
-            d.power_comm = float(self.base_power_comm) * (float(d.bandwidth)  / float(self.base_bandwidth))
+            # Apply exponent to amplify differences in hardware speed and bandwidth
+            d.power_comp = float(self.base_power_comp) * (float(d.cpu_speed) / float(self.base_cpu_speed)) ** self.power_exponent
+            d.power_comm = float(self.base_power_comm) * (float(d.bandwidth) / float(self.base_bandwidth)) ** self.power_exponent
 
     def _init_energy_budgets(self) -> None:
         lo, hi = self.energy_budget_range
@@ -527,7 +539,7 @@ class MultiAgentIoTEnvLatencyEnergySum(gym.Env):
             }
 
             total_latency = float(comp_latency + trans_latency)
-            rewards[aid] = -(total_latency + cost)
+            rewards[aid] = -(self.alpha * total_latency + self.beta * cost)
 
             infos[aid] = {
                 # ── Timing ──────────────────────────────────────────────────

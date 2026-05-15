@@ -1,0 +1,58 @@
+[
+  {
+    "scenario": "Base",
+    "avg_reward": -0.6068333338644779,
+    "success_rate": 100.0,
+    "avg_cpu": 0.09537710017211205,
+    "avg_mem": 0.1924194508428671,
+    "device_usage": [
+      20,
+      20,
+      0,
+      40,
+      20
+    ]
+  },
+  {
+    "scenario": "Slow CPU (D0)",
+    "avg_reward": -1.0896180309567811,
+    "success_rate": 100.0,
+    "avg_cpu": 0.19205902557979454,
+    "avg_mem": 0.1923523343044013,
+    "device_usage": [
+      20,
+      40,
+      0,
+      20,
+      20
+    ]
+  },
+  {
+    "scenario": "Low BW",
+    "avg_reward": -1.6424882498972704,
+    "success_rate": 100.0,
+    "avg_cpu": 0.09815936825958496,
+    "avg_mem": 0.19011809321293785,
+    "device_usage": [
+      20,
+      40,
+      20,
+      0,
+      20
+    ]
+  },
+  {
+    "scenario": "High Load",
+    "avg_reward": -0.6068333338644779,
+    "success_rate": 100.0,
+    "avg_cpu": 0.09537710017211205,
+    "avg_mem": 0.1924194508428671,
+    "device_usage": [
+      20,
+      20,
+      0,
+      40,
+      20
+    ]
+  }
+]

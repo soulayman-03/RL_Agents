@@ -38,10 +38,10 @@ def read_jsonl(path: str):
 
 def main():
     # Définition des dossiers
-    path_base = r"c:\Users\soulaimane\Desktop\PFE\RL\MultiAgentMADDPG_DevicePowerEnv\results\models_1hugcnn_1cnn15_1miniresnet_1resnet18_1vgg11_1deepcnn_1lenet_p3_linFL_t0.7_e0.5k\sl_1p00"
-    path_dvfs = r"c:\Users\soulaimane\Desktop\PFE\RL\MultiAgentMADDPG_DVFS_Physics_Env\results\avec\sl_1p00"
+    path_base = r"c:\Users\soulaimane\Desktop\PFE\RL\MultiAgentMADDPG_DevicePowerEnv\results\models_1hugcnn_1cnn15_1miniresnet_1resnet18_1vgg11_1deepcnn_1lenet_p3_linFL_t0.7_e0.5k_a0.4_b0.6\sl_1p00"
+    path_dvfs = r"c:\Users\soulaimane\Desktop\PFE\RL\MultiAgentMADDPG_DVFS_BalancedEnv\results\models_1hugcnn_1cnn15_1miniresnet_1resnet18_1vgg11_1deepcnn_1lenet_p3_linFL_t0.7_e0.5k_a0.4_b0.6\sl_1p00"
     
-    out_dir = r"c:\Users\soulaimane\Desktop\PFE\RL\comparison_all_metrics"
+    out_dir = r"c:\Users\soulaimane\Desktop\PFE\RL\comparison_all_metrics_a0.4_b0.6_____1"
     os.makedirs(out_dir, exist_ok=True)
     
     print("[*] Chargement des données Baseline (Sans DVFS)...")
@@ -176,7 +176,51 @@ def main():
     plt.savefig(os.path.join(out_dir, "comp_rewards.png"), dpi=300)
     plt.close()
 
-    print(f"\n[+] Succès ! Les graphiques de comparaison ont été générés dans :\n{out_dir}")
+
+def plot_energy_breakdown(impact_path: str, out_dir: str):
+    """Plot stacked energy decomposition (comp vs comm) per episode.
+    Reads episode_impact.jsonl, computes total energy_comp and energy_comm per episode,
+    and saves a stacked bar chart 'comp_energy_breakdown.png' in out_dir.
+    """
+    import json
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    episodes = []
+    comp_vals = []
+    comm_vals = []
+    with open(impact_path, "r", encoding="utf-8") as f:
+        for line in f:
+            if not line.strip():
+                continue
+            data = json.loads(line)
+            ep = data.get("episode")
+            # Sum over allocations in this episode
+            total_comp = 0.0
+            total_comm = 0.0
+            for alloc in data.get("allocations", []):
+                total_comp += float(alloc.get("energy_comp", 0.0))
+                total_comm += float(alloc.get("energy_comm", 0.0))
+            episodes.append(ep)
+            comp_vals.append(total_comp)
+            comm_vals.append(total_comm)
+    # Plot stacked bar
+    plt.figure(figsize=(12, 6))
+    sns.set_style("whitegrid")
+    plt.bar(episodes, comp_vals, color="#EE5253", label="Computing Energy")
+    plt.bar(episodes, comm_vals, bottom=comp_vals, color="#1dd1a1", label="Communication Energy")
+    plt.xlabel("Épisode")
+    plt.ylabel("Énergie (Joules)")
+    plt.title("Décomposition de l'énergie par épisode (Computing vs Communication)")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(os.path.join(out_dir, "comp_energy_breakdown.png"), dpi=300)
+    plt.close()
+
+# Call the function in main (after existing plots)
+    # After all other plots, generate the energy breakdown charts
+    plot_energy_breakdown(os.path.join(path_base, "episode_impact.jsonl"), out_dir)
+    plot_energy_breakdown(os.path.join(path_dvfs, "episode_impact.jsonl"), out_dir)
+
 
 if __name__ == "__main__":
     main()

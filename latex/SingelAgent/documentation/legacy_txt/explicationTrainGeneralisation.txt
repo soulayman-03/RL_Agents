@@ -1,0 +1,26 @@
+Seeds to test for generalization
+
+Voici comment votre code force l'agent à apprendre des règles logiques plutôt que de la mémorisation brute :
+
+1. Ses "Yeux" voient des Caractéristiques (Features)
+Dans MultiAgentIoTEnv._get_agent_observation, l'agent ne reçoit pas seulement "Device 3". Pour chaque device, il reçoit un vecteur de données (via 
+get_state_for_device
+) :
+
+cpu_speed (Puissance brute)
+memory_free (Place disponible)
+bandwidth (Vitesse de transfert)
+privacy_clearance (Niveau de sécurité)
+Résultat : Le réseau de neurones apprend une corrélation mathématique : "Quand l'entrée CPU est haute, la récompense espérée est haute".
+
+2. Le "Rotation de Seed" (L'examen final)
+C'est l'étape cruciale que nous venons d'ajouter.
+
+Si l'agent se disait : "C'est bon, le Device 3 est le meilleur", il échouerait dès l'épisode 101.
+Pourquoi ? Parce qu'à l'épisode 101, le Seed change. Le Device 3 qui était super puissant devient soudainement très lent, et c'est le Device 0 qui devient puissant.
+Pour maintenir son score, l'agent est obligé de regarder les caractéristiques (CPU/BW) pour trouver le nouveau "meilleur" device, quel que soit son numéro.
+3. La preuve par l'Évaluation
+Votre dernier test sur 5 seeds différents (42, 55, 66, 77, 88) a donné 100% de réussite.
+
+Chaque seed correspond à une "géographie" de réseau différente.
+Réussir sur tous prouve que vos agents ont acquis une intelligence de décision : ils scannent le réseau, comparent les specs, et choisissent le device optimal selon la règle : "Si Ressources Disponibles > Besoins de ma Couche → Device est bon".

@@ -30,7 +30,7 @@ class ResourceManager:
             self.max_exposure_fraction: float = 1.0
             
             # Security-level constraint: two successive layers shouldn't be handled by the same device
-            self.sequential_diversity: bool = True
+            self.sequential_diversity: bool = False
              
             self.initialized = True
 
