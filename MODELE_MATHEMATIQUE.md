@@ -63,8 +63,14 @@ $$ T_n = \sum_{l \in \mathcal{L}_n} \sum_{m \in \mathcal{M}} x_{n,l}^m \left( t_
 *(Note: Pour la toute première couche, $t_{comm}$ modélise la latence d'envoi initial des données vers le dispositif de calcul).*
 
 ### 2.2 Modèle de Consommation Énergétique
-L'énergie dissipée par chaque dispositif est directement proportionnelle à ses spécifications matérielles. L'énergie coûte lors du traitement et de la réception/transmission :
-$$ E_{comp}(n, l, m) = P_m^{comp} \times t_{comp}(n, l, m) $$
+L'énergie dissipée par chaque dispositif dépend de ses spécifications matérielles et de la technique d'ajustement dynamique de la fréquence et de la tension (DVFS). Soit $f_m$ la fréquence effective du processeur, telle que $f_m = F_m \times \text{dvfs\_ratio}$.
+
+La puissance consommée lors du calcul suit un modèle physique cubique basé sur la fréquence d'horloge :
+$$ P_m^{comp}(f_m) = \kappa \cdot (f_m)^3 $$
+où $\kappa$ représente le facteur de capacitance et d'activité du circuit.
+
+Ainsi, l'énergie consommée lors du traitement et de la réception/transmission est :
+$$ E_{comp}(n, l, m) = P_m^{comp}(f_m) \times t_{comp}(n, l, m) $$
 $$ E_{comm}(n, l, m', m) = P_m^{comm} \times t_{comm}(n, l, m', m) $$
 
 L'énergie totale consommée par le dispositif $m$ au cours d'un pas de temps ou de l'épisode est :
@@ -80,7 +86,7 @@ L'objectif du système d'Apprentissage par Renforcement Multi-Agent (MADDPG) est
 
 $$ \min_{\mathbf{X}} \mathcal{J}(\mathbf{X}) = \sum_{n \in \mathcal{N}} \left( \alpha T_n + \beta E_n \right) $$
 
-*(Dans notre implémentation, $\alpha = 1$ et $\beta = 1$, reflétés par la constante $R = -(T_{total} + E_{cost})$ en guise de récompense d'agent).*
+*(Dans notre implémentation, $\alpha$ et $\beta$ sont des paramètres configurables (par ex. $\alpha = 0.4$, $\beta = 0.6$), reflétés par la récompense d'agent $R = -(\alpha T_{total} + \beta E_{cost})$, ce qui permet d'explorer finement le compromis Latence-Énergie).*
 
 Cette minimisation est rigoureusement sujette aux contraintes dures ("Hard Constraints") suivantes.
 
@@ -93,17 +99,28 @@ Chaque couche d'un agent doit être assignée et exécutée par un et un seul di
 $$ \sum_{m \in \mathcal{M}} x_{n,l}^m = 1 \quad \forall n \in \mathcal{N}, \forall l \in \mathcal{L}_n $$
 
 **Contrainte C2 : Capacité de la Mémoire Vive**
-À chaque étape de calcul, la somme des capacités mémoires requises par l'ensemble des couches en cours d'exécution sur le dispositif $m$ ne doit pas excéder sa RAM disponible :
+La somme des capacités mémoires requises par l'ensemble des couches en cours d'exécution sur le dispositif $m$ ne doit pas excéder sa RAM disponible :
 $$ \sum_{n \in \mathcal{N}} \sum_{l \in \mathcal{L}_n} x_{n,l}^m \times Mem_{n,l} \leq C^{mem}_m \quad \forall m \in \mathcal{M} $$
 
 **Contrainte C3 : Budget Énergétique Strict**
-L'énergie totale consommée par un dispositif pour traiter l'intégralité des tâches qu'il héberge ne doit pas excéder le budget énergétique dont il dispose (prévenant ainsi son extinction critique) :
+L'énergie totale consommée par un dispositif pour traiter l'intégralité des tâches qu'il héberge ne doit pas excéder le budget énergétique initial dont il dispose :
 $$ E_m^{total} \leq B_m \quad \forall m \in \mathcal{M} $$
 
 **Contrainte C4 : Confidentialité et Modèle de Confiance**
-Le dispositif $m$ ne peut héberger une tâche classée comme confidentielle que si son score de confiance (Trust Score) excède strictement le ratio requis par le profil de confidentialité de la couche en cours d'analyse :
-$$  TR_m \geq TR_{min} \times \frac{PL_{n,l}}{PL_{max}} \quad \text{si } x_{n,l}^m = 1 \quad \forall n \in \mathcal{N}, \forall l \in \mathcal{L}_n, \forall m \in \mathcal{M} $$
+Un dispositif $m$ ne peut exécuter une couche $l$ que s'il respecte deux critères de sécurité cumulatifs :
+1. Son niveau d'accréditation (Privacy Clearance) doit être suffisant : $PrivacyClearance_m \geq PL_{n,l}$
+2. Son score de confiance (Trust Score) doit satisfaire le seuil requis pour ce niveau de confidentialité :
+$$ TrustScore_m \geq TR_{min} \times \frac{PL_{n,l}}{PL_{max}} $$
 
-**Contrainte C5 : Diversité Séquentielle (Optionnel)**
-Si configurée, la contrainte de diversité interdit de placer plus de $\kappa$ couches consécutives de la même tâche sur le même nœud, de façon à prévenir l'étranglement ou la monopolisation de ressources singulières :
-$$ \sum_{k=l}^{l+\kappa} x_{n,k}^m \leq \kappa \quad \forall n \in \mathcal{N}, \forall m \in \mathcal{M} $$
+**Contrainte C5 : Limites d'Admission par Étape Temporelle (Compute & Bandwidth)**
+Pour éviter l'engorgement soudain, la charge allouée à un dispositif $m$ lors d'une même étape temporelle $t$ est limitée par sa fréquence et sa bande passante :
+$$ \sum_{\text{allocations à } t} C_{n,l} \leq \gamma_{comp} \times F_m \quad (\text{avec } \gamma_{comp} = 10.0) $$
+$$ \sum_{\text{allocations à } t, m' \neq m} D_{n,l-1} \leq \gamma_{bw} \times BW_m \quad (\text{avec } \gamma_{bw} = 5.0) $$
+
+**Contrainte C6 : Exposition Maximale (Security Level Exposure)**
+Afin de minimiser l'exposition d'un modèle entier à un seul nœud, un dispositif ne peut traiter plus qu'une fraction maximale $S_l$ des couches totales de la tâche de l'agent $n$ :
+$$ \sum_{l \in \mathcal{L}_n} x_{n,l}^m \leq \max(1, \lfloor L_n \times S_l \rfloor) \quad \forall n \in \mathcal{N}, \forall m \in \mathcal{M} $$
+
+**Contrainte C7 : Diversité Séquentielle (Optionnelle)**
+Si activée, cette contrainte interdit l'exécution de deux couches successives de la même tâche sur le même dispositif, forçant ainsi la distribution du calcul :
+$$ x_{n,l}^m + x_{n,l+1}^m \leq 1 \quad \forall n \in \mathcal{N}, \forall l \in \mathcal{L}_n, \forall m \in \mathcal{M} $$
