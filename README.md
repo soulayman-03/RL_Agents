@@ -185,8 +185,6 @@ Phase d'exécution (décentralisée)
 
 ---
 
-## 📁 Structure du Projet
-
 ```
 RL_Agents/
 ├── agents/                  # Définition des agents MARL
