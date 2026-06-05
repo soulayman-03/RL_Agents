@@ -145,6 +145,8 @@ def train(
     eps_decay: float = 0.9999,
     eps_min: float = 0.01,
     dvfs_levels: list[float] | None = None,
+    capacitance_activity_factor: float = 8e-6,
+    dynamic_kappa: bool = False,
     alpha: float = 1.0,
     beta: float = 1.0,
 ):
@@ -156,11 +158,13 @@ def train(
     SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
     # Nom court pour éviter l'erreur 'MAX_PATH' (260 chars) sur Windows
     prof_short = str(privacy_profile).replace("linear_front_loaded", "linFL")
+    kappa_tag = "dyn_k" if dynamic_kappa else f"k_{capacitance_activity_factor:g}"
     scenario = (
         _scenario_tag(MODEL_TYPES)
         + f"_p{int(privacy_max_level)}_{prof_short}"
         + f"_t{float(trust_min_for_max_privacy):g}"
         + f"_e{float(energy_max/1000):g}k"
+        + f"_{kappa_tag}"
         + f"_a{float(alpha):g}_b{float(beta):g}"
     )
     RESULTS_DIR = os.path.join(SCRIPT_DIR, "results", scenario, _sl_tag(float(sl)))
@@ -187,6 +191,8 @@ def train(
         base_cpu_speed=float(base_cpu_speed),
         base_bandwidth=float(base_bandwidth),
         dvfs_levels=dvfs_levels,
+        capacitance_activity_factor=float(capacitance_activity_factor),
+        dynamic_kappa=bool(dynamic_kappa),
         alpha=float(alpha),
         beta=float(beta),
     )
@@ -230,6 +236,8 @@ def train(
                     "base_cpu_speed": float(base_cpu_speed),
                     "base_bandwidth": float(base_bandwidth),
                     "dvfs_levels": env.dvfs_levels,
+                    "capacitance_activity_factor": float(env.capacitance_activity_factor),
+                    "dynamic_kappa": bool(env.dynamic_kappa),
                     "eps_decay": float(eps_decay),
                     "eps_min": float(eps_min),
                 },
@@ -718,6 +726,8 @@ if __name__ == "__main__":
     parser.add_argument("--eps-decay", type=float, default=0.9999)
     parser.add_argument("--eps-min", type=float, default=0.05)
     parser.add_argument("--dvfs-levels", type=float, nargs="+", default=[1.0, 0.75, 0.5])
+    parser.add_argument("--kappa", type=float, default=8e-6, help="Capacitance activity factor for physical power model")
+    parser.add_argument("--dynamic-kappa", action="store_true", help="Use dynamic device-specific calibration of kappa based on baseline")
     parser.add_argument("--alpha", type=float, default=1.0, help="Weight for latency in reward")
     parser.add_argument("--beta", type=float, default=1.0, help="Weight for energy in reward")
     args = parser.parse_args()
@@ -746,6 +756,8 @@ if __name__ == "__main__":
             eps_decay=float(args.eps_decay),
             eps_min=float(args.eps_min),
             dvfs_levels=list(args.dvfs_levels),
+            capacitance_activity_factor=float(args.kappa),
+            dynamic_kappa=bool(args.dynamic_kappa),
             alpha=float(args.alpha),
             beta=float(args.beta),
     )

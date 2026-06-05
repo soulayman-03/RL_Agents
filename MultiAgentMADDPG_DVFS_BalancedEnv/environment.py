@@ -76,6 +76,8 @@ class MultiAgentIoTEnvLatencyEnergySum(gym.Env):
         base_cpu_speed: float = 50.0,   # Baseline cpu_speed used for normalisation
         base_bandwidth: float = 250.0,  # Baseline bandwidth used for normalisation
         dvfs_levels: list[float] | None = None, # Niveaux de fréquences DVFS
+        capacitance_activity_factor: float = 8e-6,
+        dynamic_kappa: bool = False,
         alpha: float = 1.0,             # Latency weight (alpha)
         beta: float = 1.0,              # Energy weight (beta)
     ):
@@ -106,6 +108,8 @@ class MultiAgentIoTEnvLatencyEnergySum(gym.Env):
         self.base_power_comm = float(base_power_comm)
         self.base_cpu_speed  = float(base_cpu_speed)
         self.base_bandwidth  = float(base_bandwidth)
+        self.capacitance_activity_factor = float(capacitance_activity_factor)
+        self.dynamic_kappa = bool(dynamic_kappa)
         self.alpha = float(alpha)
         self.beta = float(beta)
 
@@ -192,9 +196,18 @@ class MultiAgentIoTEnvLatencyEnergySum(gym.Env):
         - power_comm utilise la formule simple (proportionnelle)
         - power_comp utilise la formule physique (P = C * V^2 * A * f avec f = V => P = kappa * f^3)
         """
-        self.capacitance_activity_factor = 1.6e-5  # kappa = C * A
         for d in getattr(self.resource_manager, "devices", {}).values():
-            d.power_comp = self.capacitance_activity_factor * (float(d.cpu_speed) ** 3)
+            if self.dynamic_kappa:
+                # Align dynamic power with baseline model at max frequency (ratio = 1.0):
+                # P_baseline = base_power_comp_final * (cpu_speed_i / base_cpu_speed) ** 1.2
+                # In baseline, base_power_comp is multiplied by 2.0.
+                base_power_comp_final = self.base_power_comp * 2.0
+                p_baseline = base_power_comp_final * (float(d.cpu_speed) / float(self.base_cpu_speed)) ** 1.2
+                d.kappa = p_baseline / (float(d.cpu_speed) ** 3)
+            else:
+                d.kappa = self.capacitance_activity_factor
+
+            d.power_comp = d.kappa * (float(d.cpu_speed) ** 3)
             d.power_comm = float(self.base_power_comm) * (float(d.bandwidth)  / float(self.base_bandwidth))
 
     def _init_energy_budgets(self) -> None:
@@ -214,13 +227,14 @@ class MultiAgentIoTEnvLatencyEnergySum(gym.Env):
         P_comp = C * V^2 * A * f (avec V proportionnel a f => P = kappa * f^3)
         """
         dev = self.resource_manager.devices.get(int(device_id))
-        kappa = getattr(self, "capacitance_activity_factor", 1e-4)
         if dev is None:
             # Fallback: use base values
+            kappa = self.capacitance_activity_factor
             f_effective = float(self.base_cpu_speed) * float(dvfs_ratio)
             p_comp = kappa * (f_effective ** 3)
             p_comm = float(self.base_power_comm)
         else:
+            kappa = getattr(dev, "kappa", self.capacitance_activity_factor)
             f_effective = float(getattr(dev, "cpu_speed", self.base_cpu_speed)) * float(dvfs_ratio)
             p_comp = kappa * (f_effective ** 3)
             p_comm = float(getattr(dev, "power_comm", self.base_power_comm))

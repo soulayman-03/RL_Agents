@@ -1,3 +1,4 @@
+from sympy import false
 from typing import List, Dict
 import math
 from SingleAgent.utils import IoTDevice, DNNLayer, generate_iot_network, set_global_seed
@@ -30,7 +31,7 @@ class ResourceManager:
             self.max_exposure_fraction: float = 1.0
             
             # Security-level constraint: two successive layers shouldn't be handled by the same device
-            self.sequential_diversity: bool = False
+            self.sequential_diversity: bool = True
              
             self.initialized = True
 
