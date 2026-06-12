@@ -52,10 +52,10 @@ L'objectif global du système est de minimiser à la fois la **latence totale** 
 
 ### Formule de la Récompense (Reward) :
 La récompense d'un agent pour une action réussie est définie par :
-$$ R = -(T_{total} + E_{total}) $$
-Où :
-- $T_{total} = T_{comp} + T_{comm}$ (Temps de calcul + Temps de communication).
-- $E_{total} = E_{comp} + E_{comm}$ (Énergie consommée pour le calcul + Énergie pour la transmission).
+$$ r_{ind} = -(\alpha T_{couche}+\beta E_{couche}) $$
+$$ r_{final} = 0.7 r_{ind} + 0.3 \bar r_{team} $$
+avec :
+$$ \alpha = 0.4 \quad \text{et} \quad \beta = 0.6 $$
 
 ### Récompense d'Équipe (Coopération) :
 Pour encourager la collaboration, la récompense finale d'un agent est un mélange entre sa performance individuelle et la moyenne du groupe :
@@ -73,21 +73,17 @@ Le système impose plusieurs contraintes strictes ("Hard Constraints") pour simu
 - **Calcul (Compute)** : Le dispositif doit avoir une capacité CPU suffisante pour traiter la charge de travail de la couche.
 - **Mémoire** : Le dispositif doit avoir assez de mémoire vive (RAM) disponible pour charger les paramètres de la couche.
 - **Bande Passante (Bandwidth)** : La transmission des données entre les dispositifs est limitée par la bande passante disponible.
+- **Niveaux de Confidentialité (Privacy Levels)** : Chaque couche d'un modèle a un niveau de confidentialité requis (ex: de 0 à 3).
+- **Autorisation (Privacy Clearance)** : Chaque dispositif a un niveau d'accréditation.
+- **Trust (Confiance)** : Chaque dispositif a un "score de confiance" (Trust Score). Un agent ne peut placer une tâche sensible que sur un dispositif dont le trust score est supérieur au seuil requis pour ce niveau de confidentialité.
+- **Diversité Séquentielle (Sequential Diversity)** : Une règle qui peut limiter l'utilisation répétitive des mêmes dispositifs pour des couches consécutives afin d'éviter la congestion.
 
 ### B. Énergie (Modèle de Puissance)
 - Chaque dispositif possède un **budget batterie** (Energy Budget) pour l'épisode.
 - **Consommation** : $E = P_i \times T$ (La puissance dépend des caractéristiques matérielles du dispositif).
 - Si l'énergie restante est inférieure au coût estimé de l'action, l'allocation est refusée.
 
-### C. Sécurité et Confidentialité
-- **Niveaux de Confidentialité (Privacy Levels)** : Chaque couche d'un modèle a un niveau de confidentialité requis (ex: de 0 à 3).
-- **Autorisation (Privacy Clearance)** : Chaque dispositif a un niveau d'accréditation.
-- **Trust (Confiance)** : Chaque dispositif a un "score de confiance" (Trust Score). Un agent ne peut placer une tâche sensible que sur un dispositif dont le trust score est supérieur au seuil requis pour ce niveau de confidentialité.
-
-### D. Diversité Séquentielle (Sequential Diversity)
-- Une règle qui peut limiter l'utilisation répétitive des mêmes dispositifs pour des couches consécutives afin d'éviter la congestion ou d'augmenter la redondance.
-
-### E. Modélisation des files d'attente (Queuing Delay)
+### C. Modélisation des files d'attente (Queuing Delay)
 - Pour éviter que les agents ne saturent de manière irréaliste les nœuds les plus performants, le système peut appliquer un modèle de file d'attente (`queue_per_device`).
 - Lorsqu'il est actif, si plusieurs agents allouent des calculs ou des transferts réseau au même dispositif simultanément pendant la même étape, un temps d'attente est ajouté à la latence totale.
 - Cela force les agents à internaliser le coût de la congestion dans leur récompense et favorise un équilibrage de charge (Load Balancing) naturel sur l'ensemble du réseau IoT.
@@ -97,8 +93,8 @@ Le système impose plusieurs contraintes strictes ("Hard Constraints") pour simu
 Les performances du modèle sont évaluées selon les scénarios suivants définis dans `train.py` :
 
 ### Configuration par défaut :
-- **Agents** : 10 agents.
-- **Dispositifs** : 15 dispositifs hétérogènes.
+- **Agents** : 7 agents.
+- **Dispositifs** : 5 dispositifs hétérogènes.
 - **Modèles de DL** : Mix de ResNet18, VGG11, DeepCNN, etc.
 - **Épisodes** : 5000 épisodes d'entraînement.
 

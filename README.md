@@ -185,38 +185,6 @@ Phase d'exécution (décentralisée)
 
 ---
 
-```
-RL_Agents/
-├── agents/                  # Définition des agents MARL
-│   ├── dqn_agent.py         # Agent Deep Q-Network
-│   ├── actor_critic.py      # Agent Actor-Critic
-│   └── base_agent.py        # Classe de base
-│
-├── environment/             # Environnement de simulation
-│   ├── edge_env.py          # Environnement IoT/Edge/Cloud
-│   ├── task_model.py        # Modélisation des tâches CNN
-│   └── dvfs.py              # Module DVFS
-│
-├── models/                  # Réseaux de neurones
-│   ├── q_network.py
-│   └── policy_network.py
-│
-├── utils/                   # Outils et métriques
-│   ├── replay_memory.py     # Experience Replay
-│   ├── metrics.py           # Latence, énergie, etc.
-│   └── config.py            # Hyperparamètres
-│
-├── experiments/             # Scripts d'expérimentation
-│   ├── train.py             # Entraînement
-│   └── evaluate.py          # Évaluation et comparaison
-│
-├── results/                 # Résultats et figures
-├── requirements.txt
-└── README.md
-```
-
----
-
 ## ⚙️ Installation
 
 ```bash
@@ -271,17 +239,184 @@ python experiments/evaluate.py --model results/best_model.pth
 
 ---
 
-## 📊 Résultats
+## 📊 Résultats Expérimentaux et Analyse
 
-> *Section en cours — les résultats expérimentaux seront ajoutés après la phase d'évaluation.*
+Cette section présente les résultats détaillés de la phase d'évaluation à travers trois tests clés du paramètre d'activité capacitive $\kappa$ ainsi que l'impact de la contrainte de **Diversité Séquentielle** dans l'environnement DVFS équilibré.
 
-Les expériences compareront l'approche MARL proposée avec les baselines suivantes :
-- Exécution locale pure
-- Offloading total vers le Cloud
-- Allocation aléatoire
-- DQN mono-agent
+### 📈 Tableau Récapitulatif Global
 
-**Métriques évaluées :** Latence moyenne · Consommation énergétique · Taux de violation des contraintes · Convergence
+Voici les performances comparées des différents modèles après 5000 épisodes d'entraînement dans des conditions identiques (7 agents, 5 terminaux hétérogènes) :
+
+| Modèle / Configuration | Paramètre $\kappa$ | Diversité Séquentielle | Taux de Succès | Épisodes en Échec (Stalls) | Étapes Totales (Env Steps) | Observations Clés |
+| :--- | :--- | :--- | :---: | :---: | :---: | :--- |
+| **Test 1 : DVFS Physique Initial** | $10^{-4}$ (fixe) | Désactivée | **82.60%** | 870 | 93 456 | Consommation excessive à haute fréquence; les agents forcent le DVFS au minimum au détriment de la latence. |
+| **Test 2 : DVFS Équilibré** | $8 \times 10^{-6}$ (fixe) | Désactivée | **98.06%** | 97 | 94 912 | Calibrage optimal ($P_{max} = 1.0\text{ W}$); excellent compromis latence/énergie. |
+| **Test 3 : DVFS Alignement Dynamique**| Dynamique $\kappa_m$ | Désactivée | **98.46%** | 77 | 94 892 | Alignement adaptatif par terminal; meilleure utilisation des nœuds rapides sans pénalité énergétique disproportionnée. |
+| **Test 2 + Diversité Séquentielle** | $8 \times 10^{-6}$ (fixe) | **Activée** | **98.08%** | 96 | 94 856 | Routage forcé sur différents nœuds; surcoût de communication surmonté par l'apprentissage. |
+| **Test 1.6e-5 sans Diversité** | $1.6 \times 10^{-5}$ (fixe) | Désactivée | **98.62%** | 69 | 94 896 | Puissance maximale de 2.0 W; apprentissage robuste et stable. |
+| **Test 1.6e-5 avec Diversité** | $1.6 \times 10^{-5}$ (fixe) | **Activée** | **98.86%** | 57 | 94 904 | Survie énergétique maximale et routage optimal sous contraintes strictes. |
+
+---
+
+### 1️⃣ Test 1 : Modèle Physique Initial ($\kappa = 10^{-4}$)
+*   **Dossier des résultats associés :** [avec_queue_attend](file:///c:/Users/soulaimane/Desktop/PFE/RL/MultiAgentMADDPG_DVFS_Physics_Env/results/avec_queue_attend/sl_1p00)
+*   **Analyse :** Avec un coefficient $\kappa = 10^{-4}$, la puissance dynamique maximale du CPU atteint $12.5\text{ W}$ à $f = 50.0$, soit **12.5 fois** la consommation de la baseline linéaire. Cette disproportion biaise la récompense multi-objectif en faveur de l'économie d'énergie. Les agents apprennent à réduire systématiquement la fréquence au niveau minimal ($0.5$), augmentant drastiquement la latence de traitement. De plus, les batteries des terminaux s'épuisent rapidement lors des premières étapes de l'apprentissage, conduisant à un taux d'échec élevé (**17.4%** d'échecs, soit 870 épisodes inaboutis).
+
+````carousel
+![Récompense Cumulative Moyenne - Test 1](./MultiAgentMADDPG_DVFS_Physics_Env/results/avec_queue_attend/sl_1p00/plots/avg_cumulative_rewards.png)
+<!-- slide -->
+![Stratégie d'Exécution - Test 1](./MultiAgentMADDPG_DVFS_Physics_Env/results/avec_queue_attend/sl_1p00/plots/execution_strategy.png)
+<!-- slide -->
+![Taux de Succès vs Pénalités - Test 1](./MultiAgentMADDPG_DVFS_Physics_Env/results/avec_queue_attend/sl_1p00/analysis_plots/success_vs_penalties.png)
+<!-- slide -->
+![Consommation Énergétique Totale - Test 1](./MultiAgentMADDPG_DVFS_Physics_Env/results/avec_queue_attend/sl_1p00/analysis_plots/total_energy_consumption.png)
+<!-- slide -->
+![Latence Globale - Test 1](./MultiAgentMADDPG_DVFS_Physics_Env/results/avec_queue_attend/sl_1p00/analysis_plots/global_latency.png)
+<!-- slide -->
+![Évolution des files d'attente - Test 1](./MultiAgentMADDPG_DVFS_Physics_Env/results/avec_queue_attend/sl_1p00/analysis_plots/queuing_delay_evolution.png)
+<!-- slide -->
+![Consommation Énergétique par Terminal - Test 1](./MultiAgentMADDPG_DVFS_Physics_Env/results/avec_queue_attend/sl_1p00/analysis_plots/device_energy_evolution.png)
+````
+
+---
+
+### 2️⃣ Test 2 : Calibrage Équilibré ($\kappa = 8 \times 10^{-6}$)
+*   **Dossier des résultats associés :** [8e6_false](file:///c:/Users/soulaimane/Desktop/PFE/RL/MultiAgentMADDPG_DVFS_BalancedEnv/results/8e6_false/sl_1p00)
+*   **Analyse :** Ce calibrage est conçu pour que la consommation à fréquence maximale ($f = 50.0$) soit exactement de $1.0\text{ W}$, s'alignant sur la baseline. Les agents exploitent activement la dépendance cubique du modèle DVFS : réduire la fréquence à $37.5$ ($0.75$) permet d'économiser **57.8%** de puissance, et descendre à $25.0$ ($0.5$) permet d'économiser **87.5%** de puissance. L'apprentissage est beaucoup plus stable, atteignant un taux de succès de **98.06%**. Les agents apprennent à faire des compromis fins en ajustant la fréquence à $0.75$ ou $1.0$ pour les couches de calcul intensives nécessitant une réponse rapide, et à $0.5$ pour les couches légères.
+
+````carousel
+![Récompense Cumulative Moyenne - Test 2](./MultiAgentMADDPG_DVFS_BalancedEnv/results/8e6_false/sl_1p00/plots/avg_cumulative_rewards.png)
+<!-- slide -->
+![Stratégie d'Exécution - Test 2](./MultiAgentMADDPG_DVFS_BalancedEnv/results/8e6_false/sl_1p00/plots/execution_strategy.png)
+<!-- slide -->
+![Convergence des Récompenses - Test 2](./MultiAgentMADDPG_DVFS_BalancedEnv/results/8e6_false/sl_1p00/analysis_plots/figure_6_convergence_recompenses.png)
+<!-- slide -->
+![Taux de Succès vs Pénalités - Test 2](./MultiAgentMADDPG_DVFS_BalancedEnv/results/8e6_false/sl_1p00/analysis_plots/success_vs_penalties.png)
+<!-- slide -->
+![Consommation Énergétique Totale - Test 2](./MultiAgentMADDPG_DVFS_BalancedEnv/results/8e6_false/sl_1p00/analysis_plots/total_energy_consumption.png)
+<!-- slide -->
+![Latence Globale - Test 2](./MultiAgentMADDPG_DVFS_BalancedEnv/results/8e6_false/sl_1p00/analysis_plots/global_latency.png)
+<!-- slide -->
+![Évolution des files d'attente - Test 2](./MultiAgentMADDPG_DVFS_BalancedEnv/results/8e6_false/sl_1p00/analysis_plots/queuing_delay_evolution.png)
+<!-- slide -->
+![Consommation Énergétique par Terminal - Test 2](./MultiAgentMADDPG_DVFS_BalancedEnv/results/8e6_false/sl_1p00/analysis_plots/device_energy_evolution.png)
+````
+
+---
+
+### 3️⃣ Test 3 : Alignement Dynamique par Équipement ($\kappa$ dynamique)
+*   **Dossier des résultats associés :** [dyn](file:///c:/Users/soulaimane/Desktop/PFE/RL/MultiAgentMADDPG_DVFS_BalancedEnv/results/dyn/sl_1p00)
+*   **Analyse :** Ce test résout le problème d'hétérogénéité matérielle. Un coefficient $\kappa_m$ est calculé dynamiquement pour chaque terminal $m$ afin d'aligner sa puissance à fréquence maximale ($\rho = 1.0$) sur le modèle baseline correspondant : $\kappa_m = P_{Baseline}(m) / f_m^3$. Les terminaux rapides ne subissent plus de pénalités de puissance rédhibitoires. Les agents profitent de cette équité pour mieux répartir les couches sur l'ensemble du réseau (load balancing), atteignant un taux de succès maximal de **98.46%** (seulement 77 échecs sur 5000 épisodes). La consommation d'énergie totale diminue de façon fluide tout au long de la convergence, tandis que la latence globale reste parfaitement maîtrisée.
+
+````carousel
+![Récompense Cumulative Moyenne - Test 3](./MultiAgentMADDPG_DVFS_BalancedEnv/results/dyn/sl_1p00/plots/avg_cumulative_rewards.png)
+<!-- slide -->
+![Stratégie d'Exécution - Test 3](./MultiAgentMADDPG_DVFS_BalancedEnv/results/dyn/sl_1p00/plots/execution_strategy.png)
+<!-- slide -->
+![Convergence des Récompenses - Test 3](./MultiAgentMADDPG_DVFS_BalancedEnv/results/dyn/sl_1p00/analysis_plots/figure_6_convergence_recompenses.png)
+<!-- slide -->
+![Taux de Succès vs Pénalités - Test 3](./MultiAgentMADDPG_DVFS_BalancedEnv/results/dyn/sl_1p00/analysis_plots/success_vs_penalties.png)
+<!-- slide -->
+![Consommation Énergétique Totale - Test 3](./MultiAgentMADDPG_DVFS_BalancedEnv/results/dyn/sl_1p00/analysis_plots/total_energy_consumption.png)
+<!-- slide -->
+![Latence Globale - Test 3](./MultiAgentMADDPG_DVFS_BalancedEnv/results/dyn/sl_1p00/analysis_plots/global_latency.png)
+<!-- slide -->
+![Évolution des files d'attente - Test 3](./MultiAgentMADDPG_DVFS_BalancedEnv/results/dyn/sl_1p00/analysis_plots/queuing_delay_evolution.png)
+<!-- slide -->
+![Consommation Énergétique par Terminal - Test 3](./MultiAgentMADDPG_DVFS_BalancedEnv/results/dyn/sl_1p00/analysis_plots/device_energy_evolution.png)
+````
+
+---
+
+### 🛡️ Impact de la Contrainte de Diversité Séquentielle
+
+La contrainte de **Diversité Séquentielle** (`sequential_diversity = True`) interdit l'affectation de deux couches consécutives d'un même modèle au même terminal. Elle vise à réduire le risque de White-box attack en fragmentant l'exécution.
+
+*   **Dossiers des résultats associés :** [sequential_8e6](file:///c:/Users/soulaimane/Desktop/PFE/RL/MultiAgentMADDPG_DVFS_BalancedEnv/results/sequential_8e6/sl_1p00) (comparé à [8e6_false](file:///c:/Users/soulaimane/Desktop/PFE/RL/MultiAgentMADDPG_DVFS_BalancedEnv/results/8e6_false/sl_1p00)) et [1.6e-5_sequ](file:///c:/Users/soulaimane/Desktop/PFE/RL/MultiAgentMADDPG_DVFS_BalancedEnv/results/1.6e-5_sequ/sl_1p00) (comparé à [1.6e_false](file:///c:/Users/soulaimane/Desktop/PFE/RL/MultiAgentMADDPG_DVFS_BalancedEnv/results/1.6e_false/sl_1p00)).
+*   **Analyse :** 
+    1.  **Délai de communication accru :** En forçant le transfert des données intermédiaires entre terminaux différents pour chaque couche successive, la latence totale augmente légèrement en raison du goulot d'étranglement de la bande passante.
+    2.  **Sollicitation énergétique partagée :** L'énergie de communication réseau augmente, mais les agents compensent en augmentant le taux d'utilisation du DVFS sur les terminaux de calcul, permettant de rester dans les limites de batterie.
+    3.  **Apprentissage robuste :** Malgré ces fortes contraintes de routage, les agents MARL maintiennent un taux de succès de **98.08%** (pour $\kappa = 8 \times 10^{-6}$) et de **98.86%** (pour $\kappa = 1.6 \times 10^{-5}$). Cela démontre l'aptitude de MADDPG à découvrir des stratégies d'offloading coopératives complexes là où des heuristiques de routage classiques échoueraient face à l'explosion combinatoire.
+
+#### 📊 Visualisation des Résultats sous Contraintes de Diversité Séquentielle ($\kappa = 8 \times 10^{-6}$)
+
+````carousel
+![Récompense Cumulative Moyenne - Diversité 8e6](./MultiAgentMADDPG_DVFS_BalancedEnv/results/sequential_8e6/sl_1p00/plots/avg_cumulative_rewards.png)
+<!-- slide -->
+![Stratégie d'Exécution - Diversité 8e6](./MultiAgentMADDPG_DVFS_BalancedEnv/results/sequential_8e6/sl_1p00/plots/execution_strategy.png)
+<!-- slide -->
+![Convergence des Récompenses - Diversité 8e6](./MultiAgentMADDPG_DVFS_BalancedEnv/results/sequential_8e6/sl_1p00/analysis_plots/figure_6_convergence_recompenses.png)
+<!-- slide -->
+![Taux de Succès vs Pénalités - Diversité 8e6](./MultiAgentMADDPG_DVFS_BalancedEnv/results/sequential_8e6/sl_1p00/analysis_plots/success_vs_penalties.png)
+<!-- slide -->
+![Consommation Énergétique Totale - Diversité 8e6](./MultiAgentMADDPG_DVFS_BalancedEnv/results/sequential_8e6/sl_1p00/analysis_plots/total_energy_consumption.png)
+<!-- slide -->
+![Latence Globale - Diversité 8e6](./MultiAgentMADDPG_DVFS_BalancedEnv/results/sequential_8e6/sl_1p00/analysis_plots/global_latency.png)
+<!-- slide -->
+![Évolution des files d'attente - Diversité 8e6](./MultiAgentMADDPG_DVFS_BalancedEnv/results/sequential_8e6/sl_1p00/analysis_plots/queuing_delay_evolution.png)
+<!-- slide -->
+![Consommation Énergétique par Terminal - Diversité 8e6](./MultiAgentMADDPG_DVFS_BalancedEnv/results/sequential_8e6/sl_1p00/analysis_plots/device_energy_evolution.png)
+````
+
+#### 📊 Visualisation des Résultats sous Contraintes de Diversité Séquentielle ($\kappa = 1.6 \times 10^{-5}$)
+
+````carousel
+![Récompense Cumulative Moyenne - Diversité 1.6e-5](./MultiAgentMADDPG_DVFS_BalancedEnv/results/1.6e-5_sequ/sl_1p00/plots/avg_cumulative_rewards.png)
+<!-- slide -->
+![Stratégie d'Exécution - Diversité 1.6e-5](./MultiAgentMADDPG_DVFS_BalancedEnv/results/1.6e-5_sequ/sl_1p00/plots/execution_strategy.png)
+<!-- slide -->
+![Convergence des Récompenses - Diversité 1.6e-5](./MultiAgentMADDPG_DVFS_BalancedEnv/results/1.6e-5_sequ/sl_1p00/analysis_plots/figure_6_convergence_recompenses.png)
+<!-- slide -->
+![Taux de Succès vs Pénalités - Diversité 1.6e-5](./MultiAgentMADDPG_DVFS_BalancedEnv/results/1.6e-5_sequ/sl_1p00/analysis_plots/success_vs_penalties.png)
+<!-- slide -->
+![Consommation Énergétique Totale - Diversité 1.6e-5](./MultiAgentMADDPG_DVFS_BalancedEnv/results/1.6e-5_sequ/sl_1p00/analysis_plots/total_energy_consumption.png)
+<!-- slide -->
+![Latence Globale - Diversité 1.6e-5](./MultiAgentMADDPG_DVFS_BalancedEnv/results/1.6e-5_sequ/sl_1p00/analysis_plots/global_latency.png)
+<!-- slide -->
+![Évolution des files d'attente - Diversité 1.6e-5](./MultiAgentMADDPG_DVFS_BalancedEnv/results/1.6e-5_sequ/sl_1p00/analysis_plots/queuing_delay_evolution.png)
+<!-- slide -->
+![Consommation Énergétique par Terminal - Diversité 1.6e-5](./MultiAgentMADDPG_DVFS_BalancedEnv/results/1.6e-5_sequ/sl_1p00/analysis_plots/device_energy_evolution.png)
+````
+
+---
+
+---
+
+## ⚙️ Command-line Options
+
+Below is the full list of command‑line arguments supported by the training script in the `MultiAgentMADDPG_DevicePowerEnv` environment.
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--episodes EPISODES` | Number of training episodes | `1000` |
+| `--seed SEED` | Random seed for reproducibility | `42` |
+| `--sl [SL ...]` | Security level(s) | – |
+| `--models MODELS [MODELS ...]` | Paths to model files | – |
+| `--log-every LOG_EVERY` | Logging frequency | – |
+| `--log-trace` | Enable trace logging | `False` |
+| `--trace-max-steps TRACE_MAX_STEPS` | Max steps for trace | – |
+| `--queue-per-device` | Enable per‑device queuing model | `False` |
+| `--privacy-max-level PRIVACY_MAX_LEVEL` | Max privacy level | – |
+| `--privacy-profile PRIVACY_PROFILE` | Privacy profile name | – |
+| `--trust-min-for-max-privacy TRUST_MIN_FOR_MAX_PRIVACY` | Trust threshold for max privacy | – |
+| `--trust-score-min TRUST_SCORE_MIN` | Minimum trust score | – |
+| `--trust-score-max TRUST_SCORE_MAX` | Maximum trust score | – |
+| `--energy-min ENERGY_MIN` | Minimum energy budget | – |
+| `--energy-max ENERGY_MAX` | Maximum energy budget | – |
+| `--base-power-comp BASE_POWER_COMP` | Baseline compute power (W) | – |
+| `--base-power-comm BASE_POWER_COMM` | Baseline communication power (W) | – |
+| `--base-cpu-speed BASE_CPU_SPEED` | Baseline CPU speed for normalization | – |
+| `--base-bandwidth BASE_BANDWIDTH` | Baseline bandwidth for normalization | – |
+| `--eps-decay EPS_DECAY` | Epsilon decay rate | – |
+| `--eps-min EPS_MIN` | Minimum epsilon | – |
+| `--alpha ALPHA` | Weight for latency in reward | `0.5` |
+| `--beta BETA` | Weight for energy in reward | `0.5` |
+
+You can see the full help by running:
+
+```bash
+python train.py -h
+```
 
 ---
 
@@ -305,6 +440,6 @@ Les expériences compareront l'approche MARL proposée avec les baselines suivan
 <div align="center">
 
 **Université Moulay Slimane — FST Béni Mellal**  
-Département Informatique · Année 2024–2025
+Département Informatique · Année 2025–2026
 
 </div>

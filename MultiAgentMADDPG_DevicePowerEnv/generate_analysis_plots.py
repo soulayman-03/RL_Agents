@@ -223,7 +223,7 @@ def plot_device_energy_evolution(log_data, out_path):
             consumptions.append(max(0.0, init - rem))
         
         plt.plot(episodes, smooth(consumptions, 0.98), color=colors[i], linewidth=2, label=f"Terminal {d_id}")
-
+        
     plt.title("Évolution de la Consommation Énergétique par Terminal", fontsize=14)
     plt.xlabel("Épisodes", fontsize=12)
     plt.ylabel("Énergie consommée (Joules)", fontsize=12)
@@ -263,7 +263,7 @@ def plot_device_survival_percentage(log_data, out_path):
             percentages.append(pct)
         
         plt.plot(episodes, smooth(percentages, 0.98), color=colors[i], linewidth=2.5, label=f"Device {d_id}")
-
+        
     plt.axhline(y=100, color='gray', linestyle='--', alpha=0.5)
     plt.title("Taux de Survie Énergétique par Terminal (Évolution des Batteries)", fontsize=14)
     plt.xlabel("Épisodes", fontsize=12)
@@ -275,11 +275,119 @@ def plot_device_survival_percentage(log_data, out_path):
     plt.close()
     print(f"[+] Device Battery Trend chart saved to {out_path}")
 
+# Additional plots from the DVFS BalancedEnv version
+
+def plot_convergence_recompenses(log_data, out_path):
+    """Figure 6 : Convergence des récompenses cumulées"""
+    episodes = [row.get("episode", 0) for row in log_data]
+    models = log_data[0].get("models", []) if log_data else []
+    num_agents = len(models)
+    
+    plt.figure(figsize=(10, 6))
+    colors = sns.color_palette("husl", max(1, num_agents))
+    
+    for a in range(num_agents):
+        rewards = [row.get("per_agent_reward_sum", {}).get(str(a), 0.0) for row in log_data]
+        smoothed_rewards = smooth(rewards, 0.98)
+        model_name = models[a] if a < len(models) else f"Agent {a}"
+        plt.plot(episodes, smoothed_rewards, color=colors[a], linewidth=2, label=f"Agent {a} ({model_name})")
+        
+    plt.title("Figure 6 : Convergence des récompenses cumulées", fontsize=14)
+    plt.xlabel("Épisodes d'entraînement", fontsize=12)
+    plt.ylabel("Récompense cumulée moyenne", fontsize=12)
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=300)
+    plt.close()
+    print(f"[+] Figure 6 saved to {out_path}")
+
+def plot_respect_contraintes(log_data, out_path):
+    """Figure 7 : Capacité à respecter les contraintes"""
+    episodes = [row.get("episode", 0) for row in log_data]
+    
+    global_success = [1.0 if not row.get("ep_failed", False) else 0.0 for row in log_data]
+    smoothed_success = smooth(global_success, 0.95)
+    
+    plt.figure(figsize=(10, 6))
+    plt.plot(episodes, smoothed_success, color="#1dd1a1", linewidth=3, label="Taux de respect")
+    plt.title("Figure 7 : Capacité à respecter les contraintes", fontsize=14)
+    plt.xlabel("Épisodes d'entraînement", fontsize=12)
+    plt.ylabel("Taux de respect des contraintes", fontsize=12)
+    plt.ylim(-0.05, 1.05)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=300)
+    plt.close()
+    print(f"[+] Figure 7 saved to {out_path}")
+
+def plot_convergence_latence(log_data, out_path):
+    """Figure 8 : Convergence des pénalités de latence"""
+    episodes = [row.get("episode", 0) for row in log_data]
+    models = log_data[0].get("models", []) if log_data else []
+    num_agents = len(models)
+    
+    plt.figure(figsize=(10, 6))
+    colors = sns.color_palette("Set2", max(1, num_agents))
+    
+    for a in range(num_agents):
+        latencies = [row.get("per_agent_latency_sum", {}).get(str(a), 0.0) for row in log_data]
+        smoothed_latencies = smooth(latencies, 0.98)
+        model_name = models[a] if a < len(models) else f"Agent {a}"
+        plt.plot(episodes, smoothed_latencies, color=colors[a], linewidth=2, label=f"Agent {a} ({model_name})")
+        
+    plt.title("Figure 8 : Convergence des pénalités de latence", fontsize=14)
+    plt.xlabel("Épisodes d'entraînement", fontsize=12)
+    plt.ylabel("Pénalité de latence / Temps (sec)", fontsize=12)
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=300)
+    plt.close()
+    print(f"[+] Figure 8 saved to {out_path}")
+
+def plot_donnees_partagees(impact_data, out_path):
+    """Figure 9 : Convergence des données partagées"""
+    episodes = [row.get("episode", 0) for row in impact_data]
+    
+    all_agents = set()
+    agent_models = {}
+    for row in impact_data:
+        for alloc in row.get("allocations", []):
+            if alloc.get("agent") is not None:
+                a = int(alloc.get("agent"))
+                all_agents.add(a)
+                if alloc.get("model"):
+                    agent_models[a] = alloc.get("model")
+                
+    plt.figure(figsize=(10, 6))
+    colors = sns.color_palette("tab10", max(1, len(all_agents)))
+    
+    for i, a in enumerate(sorted(list(all_agents))):
+        data_per_ep = []
+        for row in impact_data:
+            ep_sum = 0.0
+            for alloc in row.get("allocations", []):
+                if alloc.get("agent") is not None and int(alloc.get("agent")) == a:
+                    ep_sum += float(alloc.get("trans_data", 0.0))
+            data_per_ep.append(ep_sum)
+            
+        smoothed_data = smooth(data_per_ep, 0.98)
+        model_name = agent_models.get(a, f"Agent {a}")
+        plt.plot(episodes, smoothed_data, color=colors[i % len(colors)], linewidth=2, label=f"Agent {a} ({model_name})")
+        
+    plt.title("Figure 9 : Convergence des données partagées", fontsize=14)
+    plt.xlabel("Épisodes d'entraînement", fontsize=12)
+    plt.ylabel("Quantité de données partagées", fontsize=12)
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=300)
+    plt.close()
+    print(f"[+] Figure 9 saved to {out_path}")
+
 def main():
     parser = argparse.ArgumentParser(description="Génère des graphiques d'analyse pour MADDPG")
     parser.add_argument("--results-dir", type=str, default=None, help="Chemin vers le dossier de résultats")
     args = parser.parse_args()
-
+    
     project_dir = os.path.dirname(os.path.abspath(__file__))
     
     if args.results_dir:
@@ -312,7 +420,7 @@ def main():
                     try:
                         impact_data.append(json.loads(line))
                     except: pass
-
+                    
     if not log_data and not impact_data:
         print("[!] Aucune donnée trouvée.")
         sys.exit(1)
@@ -325,6 +433,7 @@ def main():
     if impact_data:
         plot_queuing_delay(impact_data, os.path.join(plots_dir, "queuing_delay_evolution.png"))
         plot_device_queuing_delay(impact_data, os.path.join(plots_dir, "device_queuing_delay.png"))
+        plot_donnees_partagees(impact_data, os.path.join(plots_dir, "figure_9_donnees_partagees.png"))
         
     if log_data:
         plot_total_energy_consumption(log_data, os.path.join(plots_dir, "total_energy_consumption.png"))
@@ -332,10 +441,11 @@ def main():
         plot_device_survival_percentage(log_data, os.path.join(plots_dir, "device_battery_trends.png"))
         plot_global_latency(log_data, os.path.join(plots_dir, "global_latency.png"))
         plot_success_vs_penalties(log_data, os.path.join(plots_dir, "success_vs_penalties.png"))
+        plot_convergence_recompenses(log_data, os.path.join(plots_dir, "figure_6_convergence_recompenses.png"))
+        plot_respect_contraintes(log_data, os.path.join(plots_dir, "figure_7_respect_contraintes.png"))
+        plot_convergence_latence(log_data, os.path.join(plots_dir, "figure_8_convergence_latence.png"))
     
     print(f"\n[+] Succès ! Les graphiques ont été sauvegardés dans : {plots_dir}")
 
-
 if __name__ == "__main__":
     main()
-

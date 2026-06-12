@@ -99,17 +99,6 @@ class MultiAgentIoTEnvLatencyEnergySum(gym.Env):
             raise ValueError("trust_score_max must be >= trust_score_min.")
         self.trust_min_for_max_privacy = float(trust_min_for_max_privacy)
         self.trust_hard = True # Strictly hard constraint
-
-        self.energy_budget_range = (float(energy_budget_range[0]), float(energy_budget_range[1]))
-        # Store base parameters from arguments
-        self.base_power_comp = float(base_power_comp)
-        self.base_power_comm = float(base_power_comm)
-        self.base_cpu_speed = float(base_cpu_speed)
-        self.base_bandwidth = float(base_bandwidth)
-        # Updated scaling: increase base power for more variance
-        self.base_power_comp *= 2.0  # increase base computation power
-        self.base_power_comm *= 2.0  # increase base communication power
-        # Scaling exponent to amplify differences in hardware speed and bandwidth
         self.power_exponent = 1.2
 
         self.alpha = float(alpha)

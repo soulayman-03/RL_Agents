@@ -68,7 +68,7 @@ class MultiAgentIoTEnvLatencyEnergySum(gym.Env):
         trust_min_for_max_privacy: float = 0.8,
         # trust_hard is now always True for this environment
         # Energy — device-specific power (Watts)
-        energy_budget_range: tuple[float, float] = (100.0, 500.0),
+        energy_budget_range: tuple[float, float] = (200.0, 500.0),
         # Base power consumption reference values (Watts).
         # Each device will scale these by its own hardware characteristics.
         base_power_comp: float = 1.0,   # Reference Watts for a baseline-speed CPU
@@ -76,7 +76,7 @@ class MultiAgentIoTEnvLatencyEnergySum(gym.Env):
         base_cpu_speed: float = 50.0,   # Baseline cpu_speed used for normalisation
         base_bandwidth: float = 250.0,  # Baseline bandwidth used for normalisation
         dvfs_levels: list[float] | None = None, # Niveaux de fréquences DVFS
-        capacitance_activity_factor: float = 8e-6,
+        capacitance_activity_factor: float = 5.12e-7,
         dynamic_kappa: bool = False,
         alpha: float = 1.0,             # Latency weight (alpha)
         beta: float = 1.0,              # Energy weight (beta)

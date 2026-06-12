@@ -63,6 +63,39 @@ $$ T_n = \sum_{l \in \mathcal{L}_n} \sum_{m \in \mathcal{M}} x_{n,l}^m \left( t_
 *(Note: Pour la toute première couche, $t_{comm}$ modélise la latence d'envoi initial des données vers le dispositif de calcul).*
 
 ### 2.2 Modèle de Consommation Énergétique
+
+L'énergie dissipée par chaque dispositif dépend de ses spécifications matérielles et de la technique d'ajustement dynamique de la fréquence et de la tension (DVFS). Soit $f_m$ la fréquence effective du processeur, telle que $f_m = F_m \times \text{dvfs\_ratio}$.
+
+La puissance consommée lors du calcul suit un modèle physique cubique basé sur la fréquence d'horloge :
+$$ P_m^{comp}(f_m) = \kappa \cdot (f_m)^3 $$
+où $\kappa$ représente le facteur de capacitance et d'activité du circuit.
+
+Ainsi, l'énergie consommée lors du traitement et de la réception/transmission est :
+$$ E_{comp}(n, l, m) = P_m^{comp}(f_m) \times t_{comp}(n, l, m) $$
+$$ E_{comm}(n, l, m', m) = P_m^{comm} \times t_{comm}(n, l, m', m) $$
+
+L'énergie totale consommée par le dispositif $m$ au cours d'un pas de temps ou de l'épisode est :
+$$ E_m^{total} = \sum_{n \in \mathcal{N}} \sum_{l \in \mathcal{L}_n} x_{n,l}^m \left( E_{comp}(n, l, m) + \sum_{m'} x_{n,l-1}^{m'} E_{comm}(n, l, m', m) \right) $$
+
+L'énergie totale consommée par le réseau pour satisfaire la tâche complète de l'agent $n$ est notée $E_n$.
+
+---
+
+
+La puissance consommée lors du calcul suit un modèle physique cubique basé sur la fréquence d'horloge :
+$$ P_m^{comp}(f_m) = \kappa \cdot (f_m)^3 $$
+où $\kappa$ représente le facteur de capacitance et d'activité du circuit.
+
+Ainsi, l'énergie consommée lors du traitement et de la réception/transmission est :
+$$ E_{comp}(n, l, m) = P_m^{comp}(f_m) \times t_{comp}(n, l, m) $$
+$$ E_{comm}(n, l, m', m) = P_m^{comm} \times t_{comm}(n, l, m', m) $$
+
+L'énergie totale consommée par le dispositif $m$ au cours d'un pas de temps ou de l'épisode est :
+$$ E_m^{total} = \sum_{n \in \mathcal{N}} \sum_{l \in \mathcal{L}_n} x_{n,l}^m \left( E_{comp}(n, l, m) + \sum_{m'} x_{n,l-1}^{m'} E_{comm}(n, l, m', m) \right) $$
+
+L'énergie totale consommée par le réseau pour satisfaire la tâche complète de l'agent $n$ est notée $E_n$.
+
+---
 L'énergie dissipée par chaque dispositif dépend de ses spécifications matérielles et de la technique d'ajustement dynamique de la fréquence et de la tension (DVFS). Soit $f_m$ la fréquence effective du processeur, telle que $f_m = F_m \times \text{dvfs\_ratio}$.
 
 La puissance consommée lors du calcul suit un modèle physique cubique basé sur la fréquence d'horloge :
@@ -124,3 +157,36 @@ $$ \sum_{l \in \mathcal{L}_n} x_{n,l}^m \leq \max(1, \lfloor L_n \times S_l \rfl
 **Contrainte C7 : Diversité Séquentielle (Optionnelle)**
 Si activée, cette contrainte interdit l'exécution de deux couches successives de la même tâche sur le même dispositif, forçant ainsi la distribution du calcul :
 $$ x_{n,l}^m + x_{n,l+1}^m \leq 1 \quad \forall n \in \mathcal{N}, \forall l \in \mathcal{L}_n, \forall m \in \mathcal{M} $$
+
+## 📄 Pseudocode de l'Algorithme MADDPG
+
+```text
+# Initialise pour chaque agent i = 1,…,N
+    Initialise l'acteur μ_{θ_i} et le critique Q_{φ_i} avec des poids aléatoires
+    Initialise les réseaux cibles μ_{θ'_i} ← μ_{θ_i} et Q_{φ'_i} ← Q_{φ_i}
+    Initialise le replay buffer D
+
+Pour chaque épisode = 1 à M :
+    Initialise le processus de bruit N (ex. Ornstein‑Uhlenbeck) pour l'exploration
+    Observe l'état initial x = {o_1,…,o_N}
+    Pour chaque pas t = 1 à max_steps :
+        Pour chaque agent i :
+            a_i = μ_{θ_i}(o_i) + N_t   # action avec exploration
+        Exécute les actions a = {a_1,…,a_N} dans l'environnement
+        Observe les récompenses r = {r_1,…,r_N} et le nouvel état x' = {o'_1,…,o'_N}
+        Stocke la transition (x, a, r, x') dans D
+        x ← x'
+        Pour chaque agent i :
+            Échantillonne un mini‑lot S depuis D
+            y_i = r_i + γ Q_{φ'_i}(x', a'_1,…,a'_N) |_{a'_k = μ_{θ'_k}(o'_k)}
+            Met à jour le critique en minimisant
+                L(φ_i) = (1/|S|) Σ (y_i - Q_{φ_i}(x, a_1,…,a_N))^2
+            Met à jour l'acteur par le gradient de politique
+                ∇_{θ_i} J ≈ (1/|S|) Σ ∇_{θ_i} μ_{θ_i}(o_i) ∇_{a_i} Q_{φ_i}(x, a_1,…,a_i,…,a_N)
+        Pour chaque agent i :
+            Mise à jour douce des réseaux cibles
+                θ'_i ← τ θ_i + (1-τ) θ'_i
+                φ'_i ← τ φ_i + (1-τ) φ'_i
+```
+
+Ce pseudocode reprend les étapes clés décrites dans les ressources standards : initialisation des acteurs/critics, boucle d'épisodes, collecte d'expériences, mise à jour des réseaux critiques et acteurs, et mise à jour des cibles.
