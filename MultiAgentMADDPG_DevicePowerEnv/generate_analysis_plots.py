@@ -275,6 +275,98 @@ def plot_device_survival_percentage(log_data, out_path):
     plt.close()
     print(f"[+] Device Battery Trend chart saved to {out_path}")
 
+def plot_global_comp_vs_comm_latency(impact_data, out_path):
+    """Generates a line plot showing global computation latency vs communication latency."""
+    episodes = []
+    comp_latencies = []
+    comm_latencies = []
+    
+    for row in impact_data:
+        ep = row.get("episode", 0)
+        episodes.append(ep)
+        
+        # Sum comp and comm latency for all allocations in this episode
+        comp_sum = sum(float(alloc.get("t_comp", 0.0)) for alloc in row.get("allocations", []))
+        comm_sum = sum(float(alloc.get("t_comm", 0.0)) for alloc in row.get("allocations", []))
+        
+        comp_latencies.append(comp_sum)
+        comm_latencies.append(comm_sum)
+        
+    plt.figure(figsize=(10, 6))
+    plt.plot(episodes, comp_latencies, alpha=0.15, color="#1dd1a1", label="Raw Computation Latency")
+    plt.plot(episodes, smooth(comp_latencies, 0.98), color="#10ac84", linewidth=2.5, label="Computation Latency (Smoothed)")
+    
+    plt.plot(episodes, comm_latencies, alpha=0.15, color="#ff9f43", label="Raw Communication Latency")
+    plt.plot(episodes, smooth(comm_latencies, 0.98), color="#ee5253", linewidth=2.5, label="Communication Latency (Smoothed)")
+    
+    plt.title("Évolution Globale de la Latence : Calcul vs Communication", fontsize=14)
+    plt.xlabel("Épisodes", fontsize=12)
+    plt.ylabel("Latence Totale (secondes)", fontsize=12)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=300)
+    plt.close()
+    print(f"[+] Global Computation vs Communication Latency chart saved to {out_path}")
+
+def plot_agent_comp_vs_comm_latency(impact_data, out_path):
+    """Generates a bar plot comparing computation and communication latency per agent (last 100 episodes)."""
+    # Identify unique agents and their model names
+    agents = set()
+    agent_models = {}
+    for row in impact_data:
+        for alloc in row.get("allocations", []):
+            if alloc.get("agent") is not None:
+                a_id = int(alloc.get("agent"))
+                agents.add(a_id)
+                if alloc.get("model"):
+                    agent_models[a_id] = alloc.get("model")
+                    
+    if not agents:
+        return
+        
+    ordered_agents = sorted(list(agents))
+    
+    # Analyze the last 100 episodes
+    last_100_rows = impact_data[-100:] if len(impact_data) >= 100 else impact_data
+    
+    agent_comp_sum = {a: 0.0 for a in ordered_agents}
+    agent_comm_sum = {a: 0.0 for a in ordered_agents}
+    agent_counts = {a: 0 for a in ordered_agents}
+    
+    for row in last_100_rows:
+        for alloc in row.get("allocations", []):
+            a_id = alloc.get("agent")
+            if a_id is not None:
+                a_id = int(a_id)
+                agent_comp_sum[a_id] += float(alloc.get("t_comp", 0.0))
+                agent_comm_sum[a_id] += float(alloc.get("t_comm", 0.0))
+        for a_id in ordered_agents:
+            agent_counts[a_id] += 1
+            
+    # Compute averages
+    avg_comp = [agent_comp_sum[a] / max(1, agent_counts[a]) for a in ordered_agents]
+    avg_comm = [agent_comm_sum[a] / max(1, agent_counts[a]) for a in ordered_agents]
+    
+    labels = [f"Agent {a}\n({agent_models.get(a, 'Unknown')})" for a in ordered_agents]
+    
+    x = np.arange(len(labels))
+    width = 0.35
+    
+    fig, ax = plt.subplots(figsize=(12, 6))
+    rects1 = ax.bar(x - width/2, avg_comp, width, label='Calcul (Computation)', color='#10ac84')
+    rects2 = ax.bar(x + width/2, avg_comm, width, label='Communication', color='#ff9f43')
+    
+    ax.set_ylabel('Latence moyenne par épisode (secondes)', fontsize=12)
+    ax.set_title('Répartition Latence de Calcul vs Communication par Agent (Moyenne 100 derniers épisodes)', fontsize=14)
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, rotation=15, ha='right')
+    ax.legend()
+    
+    fig.tight_layout()
+    plt.savefig(out_path, dpi=300)
+    plt.close()
+    print(f"[+] Agent Computation vs Communication Latency chart saved to {out_path}")
+
 # Additional plots from the DVFS BalancedEnv version
 
 def plot_convergence_recompenses(log_data, out_path):
@@ -434,6 +526,8 @@ def main():
         plot_queuing_delay(impact_data, os.path.join(plots_dir, "queuing_delay_evolution.png"))
         plot_device_queuing_delay(impact_data, os.path.join(plots_dir, "device_queuing_delay.png"))
         plot_donnees_partagees(impact_data, os.path.join(plots_dir, "figure_9_donnees_partagees.png"))
+        plot_global_comp_vs_comm_latency(impact_data, os.path.join(plots_dir, "global_comp_vs_comm_latency.png"))
+        plot_agent_comp_vs_comm_latency(impact_data, os.path.join(plots_dir, "agent_comp_vs_comm_latency.png"))
         
     if log_data:
         plot_total_energy_consumption(log_data, os.path.join(plots_dir, "total_energy_consumption.png"))

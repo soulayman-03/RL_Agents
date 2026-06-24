@@ -100,7 +100,12 @@ class MultiAgentIoTEnvLatencyEnergySum(gym.Env):
         self.trust_min_for_max_privacy = float(trust_min_for_max_privacy)
         self.trust_hard = True # Strictly hard constraint
         self.power_exponent = 1.2
+        self.energy_budget_range = tuple(energy_budget_range)
 
+        self.base_power_comp = float(base_power_comp)
+        self.base_power_comm = float(base_power_comm)
+        self.base_cpu_speed = float(base_cpu_speed)
+        self.base_bandwidth = float(base_bandwidth)
         self.alpha = float(alpha)
         self.beta = float(beta)
 

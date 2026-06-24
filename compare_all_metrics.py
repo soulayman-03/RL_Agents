@@ -38,10 +38,10 @@ def read_jsonl(path: str):
 
 def main():
     # Définition des dossiers
-    path_base = r"c:\Users\soulaimane\Desktop\PFE\RL\MultiAgentMADDPG_DevicePowerEnv\results\models_1hugcnn_1cnn15_1miniresnet_1resnet18_1vgg11_1deepcnn_1lenet_p3_linFL_t0.7_e0.5k_a0.4_b0.6\sl_1p00"
-    path_dvfs = r"c:\Users\soulaimane\Desktop\PFE\RL\MultiAgentMADDPG_DVFS_BalancedEnv\results\models_1hugcnn_1cnn15_1miniresnet_1resnet18_1vgg11_1deepcnn_1lenet_p3_linFL_t0.7_e0.5k_a0.4_b0.6\sl_1p00"
+    path_base = r"C:\Users\soulaimane\Desktop\PFE\RL\MultiAgentMADDPG_DevicePowerEnv\results\test1\sl_1p00"
+    path_dvfs = r"C:\Users\soulaimane\Desktop\PFE\RL\MultiAgentMADDPG_DVFS_BalancedEnv\results\dynamic__seq_div_on\sl_1p00"
     
-    out_dir = r"c:\Users\soulaimane\Desktop\PFE\RL\comparison_all_metrics_a0.4_b0.6_____1"
+    out_dir = r"c:\Users\soulaimane\Desktop\PFE\RL\comparison_all_metrics"
     os.makedirs(out_dir, exist_ok=True)
     
     print("[*] Chargement des données Baseline (Sans DVFS)...")
